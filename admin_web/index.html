@@ -962,9 +962,12 @@
     // ==========================================
     // CONFIG · SESSION · API
     // ==========================================
-    // Same-origin API when the portal is served by the backend; the hosted API only when opened from file://
+    // Same-origin API when the portal is served by the backend; the local backend (port 5000) when opened
+    // from a dev static server such as VS Code Live Server; the hosted API only when opened from file://
     const IS_HTTP = /^https?:$/.test(window.location.protocol);
-    const API_BASE = IS_HTTP ? '/api' : 'https://telesales.askeva.io/api';
+    const IS_DEV_STATIC = IS_HTTP && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && window.location.port !== '5000';
+    const API_BASE = IS_DEV_STATIC ? `http://${window.location.hostname}:5000/api`
+      : IS_HTTP ? '/api' : 'https://telesales.askeva.io/api';
     const TOKEN_KEY = 'askeva_admin_token';
     const USER_KEY = 'askeva_admin_user';
     const REFRESH_MS = 60 * 1000;
