@@ -13,6 +13,8 @@ const DemoBookingSchema = new mongoose.Schema({
   // Start of the booked slot and the slot as the caller saw it ("12:00 PM - 1:00 PM")
   scheduledAt: { type: Date, required: true },
   slot: { type: String, default: '' },
+  // Length of the booking: the Book Demo page books 30-minute slots, older builds booked an hour
+  durationMinutes: { type: Number, default: 60 },
   course: { type: String, default: '' }, // class / course the demo is for
   // Team Leader who runs the demo: the booking shows in their portal; one booking per slot per TL
   teamLeaderId: { type: String, default: '' },

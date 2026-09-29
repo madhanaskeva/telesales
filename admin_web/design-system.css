@@ -1045,3 +1045,49 @@ select.form-control, .select { cursor: pointer; padding-right: 8px; }
   .tree-node { flex-wrap: wrap; }
   .funnel-row { grid-template-columns: 76px minmax(0, 1fr) 40px; }
 }
+
+/* ---------- Demo Bookings: team leader chips, day slot grid, slot action menu ---------- */
+.demo-tl-row { display: flex; align-items: center; gap: var(--ds-space-3); flex-wrap: wrap; margin-bottom: var(--ds-space-4); }
+.demo-tl-label { font-family: var(--ds-font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ds-text-3); }
+.demo-tl-row .filter-chip { height: 36px; padding: 0 18px; font-weight: 700; }
+.demo-slot-card { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-sm); margin-bottom: var(--ds-space-5); overflow: hidden; }
+.demo-slot-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-3); flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--ds-border); }
+.demo-day-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.demo-day-nav strong { font-size: 16px; font-weight: 800; color: var(--ds-text); }
+.demo-nav-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--ds-border-strong); background: var(--ds-surface); font-size: 16px; line-height: 1; cursor: pointer; color: var(--ds-text); }
+.demo-nav-btn:hover { background: var(--ds-surface-muted); }
+.demo-day-input { height: 30px; border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-sm); padding: 0 8px; font: 12px var(--ds-font-sans); color: var(--ds-text); background: var(--ds-surface); }
+.demo-slot-hint { font-size: 12px; color: var(--ds-text-3); }
+.demo-slot-grid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 14px; padding: 20px 18px; }
+.demo-slot { position: relative; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 14px; border: 1px solid var(--ds-border-strong); border-radius: 22px; background: var(--ds-surface); cursor: pointer; text-align: center; transition: transform .08s, box-shadow .12s; }
+.demo-slot:hover { box-shadow: var(--ds-shadow-md); }
+.demo-slot:focus-visible { outline: 2px solid var(--ds-ink-900); outline-offset: 2px; }
+.demo-slot-time { font-size: 13px; font-weight: 800; color: var(--ds-text); white-space: nowrap; }
+.demo-slot-sub { font-size: 11px; color: var(--ds-ink-700); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.demo-slot.is-booked { background: #8BE04E; border-color: #6CC530; }
+.demo-slot.is-blocked { background: var(--ds-danger-dot); border-color: var(--ds-danger); }
+.demo-slot.is-blocked .demo-slot-time, .demo-slot.is-blocked .demo-slot-sub { color: #fff; }
+.demo-slot.is-past { opacity: 0.5; }
+.demo-slot-act { position: absolute; top: 4px; right: 8px; width: 22px; height: 18px; border: 0; border-radius: 6px; background: transparent; font-size: 14px; line-height: 1; font-weight: 800; color: var(--ds-text-3); cursor: pointer; opacity: 0; transition: opacity .12s; }
+.demo-slot:hover .demo-slot-act, .demo-slot:focus-within .demo-slot-act { opacity: 1; }
+.demo-slot-act:hover { background: rgba(16, 24, 12, 0.08); color: var(--ds-text); }
+.demo-slot.is-blocked .demo-slot-act { color: #fff; }
+.demo-slot-legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 0 18px 16px; font-size: 12px; color: var(--ds-text-2); }
+.demo-slot-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--ds-border-strong); }
+.demo-slot-legend .lg-free { background: var(--ds-surface); }
+.demo-slot-legend .lg-booked { background: #8BE04E; border-color: #6CC530; }
+.demo-slot-legend .lg-blocked { background: var(--ds-danger-dot); border-color: var(--ds-danger); }
+.demo-slot-menu { position: absolute; z-index: 1000; width: 260px; background: var(--ds-surface); border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-md); box-shadow: var(--ds-shadow-lg); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.demo-menu-head { font-family: var(--ds-font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ds-text-2); }
+.demo-menu-note { margin: 0; font-size: 12px; color: var(--ds-text-2); }
+.demo-menu-item { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; border-radius: var(--ds-radius-sm); background: var(--ds-success-bg); }
+.demo-menu-item.is-blocked { background: var(--ds-danger-bg); }
+.demo-menu-item strong { font-size: 13px; }
+.demo-menu-item span { font-size: 11px; color: var(--ds-text-2); }
+.demo-menu-item .btn { margin-top: 4px; }
+.btn-danger-solid { background: var(--ds-danger-dot); color: #fff; border-color: var(--ds-danger-dot); }
+.btn-danger-solid:hover:not(:disabled) { background: var(--ds-danger); border-color: var(--ds-danger); color: #fff; }
+@media (max-width: 1400px) { .demo-slot-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 1024px) { .demo-slot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .demo-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; } .demo-slot-act { opacity: 1; } }
+@media (hover: none) { .demo-slot-act { opacity: 1; } }

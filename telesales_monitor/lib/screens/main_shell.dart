@@ -9,6 +9,7 @@ import 'manager/employee_detail_screen.dart';
 import 'caller/caller_dashboard.dart';
 import 'caller/caller_history_screen.dart';
 import 'caller/caller_profile_screen.dart';
+import 'caller/book_demo_screen.dart';
 import 'shared/leads_screen.dart';
 import 'shared/recordings_screen.dart';
 import 'shared/more_screen.dart';
@@ -84,6 +85,9 @@ class _MainShellState extends State<MainShell> {
           bodyWidget = const CallerHistoryScreen();
           break;
         case 3:
+          bodyWidget = const BookDemoScreen();
+          break;
+        case 4:
           bodyWidget = const CallerProfileScreen();
           break;
         default:
@@ -169,7 +173,8 @@ class _MainShellState extends State<MainShell> {
                                     _TabItem(label: 'HOME', index: 0, isSelected: tele.activeTabIndex == 0),
                                     _TabItem(label: 'LEADS', index: 1, isSelected: tele.activeTabIndex == 1),
                                     _TabItem(label: 'STATS', index: 2, isSelected: tele.activeTabIndex == 2),
-                                    _TabItem(label: 'PROFILE', index: 3, isSelected: tele.activeTabIndex == 3),
+                                    _TabItem(label: 'BOOK DEMO', index: 3, isSelected: tele.activeTabIndex == 3),
+                                    _TabItem(label: 'PROFILE', index: 4, isSelected: tele.activeTabIndex == 4),
                                   ],
                           ),
                         ),

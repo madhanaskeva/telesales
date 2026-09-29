@@ -541,9 +541,11 @@ class ApiService {
     required String reason,
     String course = '',
     String teamLeaderId = '',
+    int? durationMinutes,
   }) async {
     final res = await _request('POST', '/demos', body: {
       if (teamLeaderId.isNotEmpty) 'teamLeaderId': teamLeaderId,
+      'durationMinutes': ?durationMinutes,
       'leadId': leadId,
       'clientName': clientName,
       'clientPhone': clientPhone,
@@ -579,6 +581,33 @@ class ApiService {
     final list = _decodeMap(res)?['slots'];
     if (list is! List) return null;
     return list.map((v) => DateTime.tryParse(v.toString())?.toLocal()).whereType<DateTime>().toSet();
+  }
+
+  /// GET /demos/day: bookings and blocked slots for [teamLeaderId] on [day], as
+  /// {bookings: [...], blocks: [...]}; null when offline.
+  static Future<Map<String, dynamic>?> fetchDemoDay({required String teamLeaderId, required DateTime day}) async {
+    final date = '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    final res = await _request('GET', '/demos/day${_query({'teamLeaderId': teamLeaderId, 'date': date})}');
+    if (!_ok(res)) return null;
+    return _decodeMap(res);
+  }
+
+  /// GET /demos: the signed-in caller's demos from [from] on; null when offline.
+  static Future<List<Map<String, dynamic>>?> fetchMyDemos({required DateTime from}) async {
+    final res = await _request('GET', '/demos${_query({'from': from.toUtc().toIso8601String()})}');
+    if (!_ok(res)) return null;
+    final list = _decodeMap(res)?['demos'];
+    if (list is! List) return null;
+    return list.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList();
+  }
+
+  /// POST /demos/:id/cancel. Returns null when cancelled, otherwise the reason.
+  static Future<String?> cancelDemo(String id) async {
+    final res = await _request('POST', '/demos/${Uri.encodeComponent(id)}/cancel', body: {});
+    if (_ok(res)) return null;
+    if (res == null) return 'No connection. Check the internet and try again.';
+    final msg = _decodeMap(res)?['message']?.toString() ?? '';
+    return msg.isNotEmpty ? msg : 'Could not cancel the demo (error ${res.statusCode}).';
   }
 
   // ------------------------------------------------------------------ Notifications
