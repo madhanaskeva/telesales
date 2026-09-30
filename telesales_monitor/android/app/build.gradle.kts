@@ -7,7 +7,8 @@ plugins {
 android {
     namespace = "com.askeva.telesales_monitor"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned to the locally installed NDK (flutter.ndkVersion wants 28.2.13676358, which isn't installed).
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
