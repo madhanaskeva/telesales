@@ -40,7 +40,7 @@ class _CallerDashboardState extends State<CallerDashboard> {
     final sessionLeads = tele.callableSessionLeads;
     final freshCount = sessionLeads.where((l) => l.attempts == 0).length;
 
-    // Break / Duty time strings
+    // Duty time string
     final dutyStart = tele.dutyStartTime;
     final dutyStartStr = dutyStart != null ? DateFormat('h:mm a').format(dutyStart) : '—';
 
@@ -106,7 +106,7 @@ class _CallerDashboardState extends State<CallerDashboard> {
               ),
               const SizedBox(height: 12),
 
-              // Status Pills: ON DUTY & TAKE BREAK
+              // Status pill: ON DUTY
               Row(
                 children: [
                   GestureDetector(
@@ -139,23 +139,23 @@ class _CallerDashboardState extends State<CallerDashboard> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => _showBreakOptions(context, tele),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: tele.isOnBreak ? AppTheme.limeYellow : AppTheme.white,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: AppTheme.ink900, width: 1.5),
-                        boxShadow: AppTheme.neoShadowSm(color: AppTheme.ink900),
-                      ),
-                      child: Text(
-                        tele.isOnBreak ? 'ON BREAK (RESUME)' : 'TAKE BREAK',
-                        style: AppTheme.mono(size: 10, color: AppTheme.ink900, weight: FontWeight.w700),
+                  // Breaks were removed; a break still running from an older build can only be ended
+                  if (tele.isOnBreak) ...[
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => tele.endBreak(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppTheme.limeYellow,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppTheme.ink900, width: 1.5),
+                          boxShadow: AppTheme.neoShadowSm(color: AppTheme.ink900),
+                        ),
+                        child: Text('RESUME (END BREAK)', style: AppTheme.mono(size: 10, color: AppTheme.ink900, weight: FontWeight.w700)),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
@@ -563,76 +563,6 @@ class _CallerDashboardState extends State<CallerDashboard> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showBreakOptions(BuildContext context, TeleProvider tele) {
-    if (tele.isOnBreak) {
-      tele.endBreak();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppTheme.ink900,
-          content: Text('✓ Welcome back! Break ended.', style: AppTheme.bodyBold(size: 12, color: AppTheme.greenNeon)),
-        ),
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: AppTheme.paper,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: AppTheme.ink900, width: 2),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.ink900,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('SELECT BREAK TYPE', style: AppTheme.headline(size: 18, color: AppTheme.ink900)),
-            const SizedBox(height: 14),
-            ListTile(
-              title: Text('☕ Tea Break (10-15 min)', style: AppTheme.bodyBold(size: 14)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.ink900, width: 1.5),
-              ),
-              tileColor: AppTheme.white,
-              onTap: () {
-                Navigator.pop(ctx);
-                tele.startBreak('Tea break');
-              },
-            ),
-            const SizedBox(height: 10),
-            ListTile(
-              title: Text('🍽️ Lunch Break (30-45 min)', style: AppTheme.bodyBold(size: 14)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.ink900, width: 1.5),
-              ),
-              tileColor: AppTheme.white,
-              onTap: () {
-                Navigator.pop(ctx);
-                tele.startBreak('Lunch');
-              },
-            ),
-          ],
         ),
       ),
     );
