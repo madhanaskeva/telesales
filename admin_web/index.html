@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ASK EVA · Telesales Monitor & Admin Web Portal</title>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" sizes="192x192" href="/ask_eva_logo_192.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="ask_eva_logo_192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-title" content="AskEVA Monitor">
   <meta name="application-name" content="AskEVA Telesales">
@@ -20,7 +20,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 
   <!-- Design system: every colour, font, spacing and component style of the portal lives here -->
-  <link rel="stylesheet" href="/design-system.css">
+  <link rel="stylesheet" href="design-system.css">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
   <div id="webLoginOverlay">
     <div class="login-card">
       <div class="login-logo">
-        <img src="/ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='/ask_eva_logo.png';}" alt="AskEva">
+        <img src="ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='ask_eva_logo.png';}" alt="AskEva">
       </div>
       <div class="login-title">Telesales Monitor</div>
       <div class="login-subtitle">Admin, manager &amp; team leader portal</div>
@@ -107,7 +107,7 @@
       <svg class="ico"><use href="#i-menu"></use></svg><span>Menu</span>
     </button>
     <div style="display: flex; align-items: center; gap: 8px;">
-      <img src="/ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='/ask_eva_logo.png';}" alt="AskEva" style="width: 40px; height: auto; display: block;">
+          <img src="ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='ask_eva_logo.png';}" alt="AskEva" style="width: 40px; height: auto; display: block;">
       <span class="sidebar-brand">TELESALES</span>
     </div>
     <div style="width: 40px;"></div>
@@ -122,7 +122,7 @@
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar" id="appSidebar">
       <div class="sidebar-header">
-        <img class="sidebar-logo" src="/ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='/ask_eva_logo.png';}" alt="AskEva">
+        <img class="sidebar-logo" src="ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='ask_eva_logo.png';}" alt="AskEva">
         <div class="sidebar-brand">TELESALES<br>MONITOR</div>
         <button type="button" onclick="toggleMobileSidebar(false)" aria-label="Close menu" class="sidebar-close-btn" id="sidebarCloseBtn"><svg class="ico"><use href="#i-x"></use></svg></button>
       </div>
@@ -609,7 +609,6 @@
           </div>
         </div>
       </div>
-
 
       <!-- ================= 5. LEADERBOARD ================= -->
       <div id="tab-lb" class="tab-view">
@@ -1257,6 +1256,8 @@
         todayMembers: null,
         errors: {},
         loaded: {},
+        demoDay: null,
+        demoDayTouched: false,
         logPlaylist: [],
         recPlaylist: [],
         lastCallRows: [],
@@ -2024,13 +2025,16 @@
       $('appViewport').style.display = 'flex';
       Store.viewAsId = null;
       const deepLink = /^#user\//.test(location.hash) ? location.hash : '';
+      const showDemosByDefault = canSeeDemosTab() && !deepLink;
       switchNavTab('dash');
       // A #user/<id> link opened directly (new tab, bookmark) goes straight to that user's page
       if (deepLink) {
         try { history.replaceState(null, '', location.pathname + location.search + deepLink); } catch (_) {}
         routeFromHash(false);
       }
-      syncWithBackend();
+      syncWithBackend().then(() => {
+        if (showDemosByDefault && Store.tab === 'dash') switchNavTab('demos');
+      });
       startAutoRefresh();
     }
 
@@ -5109,6 +5113,12 @@
           apiFetch(`/demos/blocks?from=${encodeURIComponent(since)}`).catch(() => null),
         ]);
         Store.demos = (json.demos || []).map(mapDemo).filter(d => d.id);
+        if (!Store.demoDayTouched) {
+          const nextDemo = Store.demos
+            .filter(d => d.status === 'BOOKED' && d.at && d.at.getTime() + d.durationMinutes * 60000 > Date.now())
+            .sort((a, b) => a.at - b.at)[0];
+          Store.demoDay = nextDemo ? istDateStr(nextDemo.at) : null;
+        }
         if (blocks) Store.demoBlocks = (blocks.blocks || []).map(mapDemoBlock).filter(b => b.id && b.at);
         Store.errors.demos = null;
         Store.loaded.demos = true;
@@ -5139,6 +5149,7 @@
     };
 
     function setDemoDay(dateStr) {
+      Store.demoDayTouched = true;
       Store.demoDay = /^\d{4}-\d{2}-\d{2}$/.test(dateStr || '') ? dateStr : null;
       closeDemoSlotMenu();
       renderDemos();

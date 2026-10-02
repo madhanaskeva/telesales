@@ -113,7 +113,7 @@ function serveAdminWeb(req, res, next) {
   if (!ADMIN_WEB_FILES.has(name)) return next();
   res.sendFile(path.join(ADMIN_WEB_DIR, name));
 }
-app.use(['/admin', '/web'], serveAdminWeb);
+app.use(['/admin', '/web', '/admin_web'], serveAdminWeb);
 app.use(serveAdminWeb);
 app.use('/assets/images', express.static(path.join(__dirname, '../../telesales_monitor/assets/images')));
 // Call audio is NOT served statically: it goes through the authenticated /api/recordings/:id/audio route only.

@@ -90,7 +90,7 @@ function istDayRange(dateStr) {
 // GET /api/demos/team-leaders: Team Leaders a demo can be booked with (any signed-in user).
 router.get('/api/demos/team-leaders', async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const rows = await Employee.find({ role: 'team_leader' }).select('id name').lean();
     const teamLeaders = rows.filter(r => r.id).map(r => ({ id: r.id, name: r.name || '' }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -101,7 +101,7 @@ router.get('/api/demos/team-leaders', async (req, res) => {
 // GET /api/demos/booked-slots?teamLeaderId=&date=YYYY-MM-DD: slot starts already booked for that TL.
 router.get('/api/demos/booked-slots', async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const teamLeaderId = cleanText(req.query.teamLeaderId, 80);
     const range = istDayRange(req.query.date);
     if (!teamLeaderId || !range) return res.status(400).json({ success: false, message: 'teamLeaderId and date (YYYY-MM-DD) are required.' });
@@ -123,7 +123,7 @@ router.get('/api/demos/booked-slots', async (req, res) => {
 // Other callers' bookings show only who booked them; the caller's own show the client too.
 router.get('/api/demos/day', async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const range = istDayRange(req.query.date);
     if (!range) return res.status(400).json({ success: false, message: 'date (YYYY-MM-DD) is required.' });
     const { bookings, blocks } = await occupied(cleanText(req.query.teamLeaderId, 80), range[0], range[1]);
@@ -148,7 +148,7 @@ router.get('/api/demos/day', async (req, res) => {
 // GET /api/demos/blocks?from=&to=: blocked slots (any signed-in user).
 router.get('/api/demos/blocks', async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const from = parseDate(req.query.from);
     const to = parseDate(req.query.to);
     const q = (from || to) ? { scheduledAt: { ...(from ? { $gte: from } : {}), ...(to ? { $lte: to } : {}) } } : {};
@@ -221,7 +221,7 @@ router.delete('/api/demos/blocks/:id', async (req, res) => {
 // POST /api/demos/:id/cancel: the caller who booked it, or a portal user who can see it, cancels a demo.
 router.post('/api/demos/:id/cancel', async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const demo = await DemoBooking.findOne({ id: cleanText(req.params.id, 80) }).lean();
     if (!demo) return res.status(404).json({ success: false, message: 'This demo no longer exists.' });
     let allowed = !!demo.callerId && demo.callerId === req.user.id;
@@ -239,7 +239,7 @@ router.post('/api/demos/:id/cancel', async (req, res) => {
 // POST /api/demos: the signed-in caller books a demo with a Team Leader.
 router.post(['/api/demos', '/api/user/demos'], async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'Please sign in again.', code: 'AUTH_REQUIRED' });
     const b = req.body || {};
     const clientName = cleanText(b.clientName, 120);
     const scheduledAt = parseDate(b.scheduledAt);

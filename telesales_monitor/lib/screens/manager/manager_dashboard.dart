@@ -14,6 +14,7 @@ class ManagerDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tele = Provider.of<TeleProvider>(context);
+    final isTeamLeader = tele.currentUserRole.toLowerCase() == 'team_leader';
     final stats = tele.backendStats;
 
     // Team numbers counted by the server for the selected period (same as the admin web)
@@ -26,7 +27,9 @@ class ManagerDashboard extends StatelessWidget {
     final missed = tele.missedCalls;
     final neverAttended = tele.neverAttendedCalls;
     final avgDurationStr = tele.averageTalkTimeFormatted;
-    final connectRateStr = totalCalls > 0 ? ((connectedCalls / totalCalls) * 100).toStringAsFixed(1) : '0.0';
+    final connectRateStr = totalCalls > 0
+        ? ((connectedCalls / totalCalls) * 100).toStringAsFixed(1)
+        : '0.0';
 
     String topTalkTimeName = 'NO CALLS LOGGED YET';
     String topTalkTimeDuration = '0H 00M';
@@ -43,17 +46,26 @@ class ManagerDashboard extends StatelessWidget {
 
     // Dynamic Hourly Bar Pattern (9AM - 6PM)
     final List<Map<String, dynamic>> hourlyData = [];
-    if (stats != null && stats['hourlyCalls'] is List && (stats['hourlyCalls'] as List).isNotEmpty) {
+    if (stats != null &&
+        stats['hourlyCalls'] is List &&
+        (stats['hourlyCalls'] as List).isNotEmpty) {
       final rawList = stats['hourlyCalls'] as List;
       int maxCnt = 1;
       for (var h in rawList) {
-        final c = (h is Map && h['calls'] is num) ? (h['calls'] as num).toInt() : 0;
+        final c = (h is Map && h['calls'] is num)
+            ? (h['calls'] as num).toInt()
+            : 0;
         if (c > maxCnt) maxCnt = c;
       }
       for (var h in rawList) {
-        final cnt = (h is Map && h['calls'] is num) ? (h['calls'] as num).toInt() : 0;
-        final hour = (h is Map && h['hour'] != null) ? h['hour'].toString() : '';
-        final isPk = (h is Map && h['isPeak'] == true) || (cnt > 0 && cnt == maxCnt);
+        final cnt = (h is Map && h['calls'] is num)
+            ? (h['calls'] as num).toInt()
+            : 0;
+        final hour = (h is Map && h['hour'] != null)
+            ? h['hour'].toString()
+            : '';
+        final isPk =
+            (h is Map && h['isPeak'] == true) || (cnt > 0 && cnt == maxCnt);
         final val = cnt > 0 ? (cnt / maxCnt).clamp(0.15, 1.0) : 0.08;
         hourlyData.add({
           'hour': hour,
@@ -74,7 +86,19 @@ class ManagerDashboard extends StatelessWidget {
       for (var cnt in hourCounts) {
         if (cnt > maxHourCount) maxHourCount = cnt;
       }
-      final List<String> hourLabels = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM'];
+      final List<String> hourLabels = [
+        '9AM',
+        '10AM',
+        '11AM',
+        '12PM',
+        '1PM',
+        '2PM',
+        '3PM',
+        '4PM',
+        '5PM',
+        '6PM',
+        '7PM',
+      ];
       for (int i = 0; i < 11; i++) {
         final cnt = hourCounts[i];
         final val = cnt > 0 ? (cnt / maxHourCount).clamp(0.15, 1.0) : 0.08;
@@ -89,21 +113,31 @@ class ManagerDashboard extends StatelessWidget {
 
     String calendarHeaderLabel = '📅 TODAY';
     if (tele.selectedDateRange != null) {
-      calendarHeaderLabel = '📅 ${DateFormat('d MMM').format(tele.selectedDateRange!.start)} - ${DateFormat('d MMM').format(tele.selectedDateRange!.end)}'.toUpperCase();
+      calendarHeaderLabel =
+          '📅 ${DateFormat('d MMM').format(tele.selectedDateRange!.start)} - ${DateFormat('d MMM').format(tele.selectedDateRange!.end)}'
+              .toUpperCase();
     } else if (tele.selectedCustomDate != null) {
-      calendarHeaderLabel = '📅 ${DateFormat('d MMM yyyy').format(tele.selectedCustomDate!).toUpperCase()}';
+      calendarHeaderLabel =
+          '📅 ${DateFormat('d MMM yyyy').format(tele.selectedCustomDate!).toUpperCase()}';
     } else if (tele.selectedTimeFilter == 1) {
       calendarHeaderLabel = '📅 THIS WEEK';
     } else if (tele.selectedTimeFilter == 2) {
       calendarHeaderLabel = '📅 THIS MONTH';
     }
 
-    final hasCustomCalendar = tele.selectedDateRange != null || tele.selectedCustomDate != null;
+    final hasCustomCalendar =
+        tele.selectedDateRange != null || tele.selectedCustomDate != null;
     // Team target = sum of each caller's admin-set daily target
     final teamTarget = tele.employees
         .where((e) => e.role.toLowerCase() == 'caller')
-        .fold<int>(0, (sum, e) => sum + (e.dailyTarget > 0 ? e.dailyTarget : kDefaultDailyTarget));
-    final targetProgress = totalCalls > 0 && teamTarget > 0 ? (totalCalls / teamTarget).clamp(0.01, 1.0) : 0.0;
+        .fold<int>(
+          0,
+          (sum, e) =>
+              sum + (e.dailyTarget > 0 ? e.dailyTarget : kDefaultDailyTarget),
+        );
+    final targetProgress = totalCalls > 0 && teamTarget > 0
+        ? (totalCalls / teamTarget).clamp(0.01, 1.0)
+        : 0.0;
 
     return RefreshIndicator(
       color: AppTheme.greenNeon,
@@ -118,7 +152,7 @@ class ManagerDashboard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TopHeader(
-              title: 'DASHBOARD',
+              title: isTeamLeader ? 'TEAM LEADER DASHBOARD' : 'DASHBOARD',
               userName: tele.currentUserName,
               selectedSimIndex: tele.activeSimSlot,
             ),
@@ -128,7 +162,9 @@ class ManagerDashboard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: tele.isManagerCallerMode ? AppTheme.limeYellow : AppTheme.white,
+                color: tele.isManagerCallerMode
+                    ? AppTheme.limeYellow
+                    : AppTheme.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.ink900, width: 1.5),
                 boxShadow: AppTheme.neoShadowSm(color: AppTheme.ink900),
@@ -139,28 +175,44 @@ class ManagerDashboard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        tele.isManagerCallerMode ? Icons.headset_mic_rounded : Icons.admin_panel_settings_rounded,
+                        tele.isManagerCallerMode
+                            ? Icons.headset_mic_rounded
+                            : Icons.admin_panel_settings_rounded,
                         size: 18,
                         color: AppTheme.ink900,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        tele.isManagerCallerMode ? 'MODE: CALLER ACTIVE' : 'MODE: ${tele.supervisorLabel} SUPERVISION',
-                        style: AppTheme.label(size: 9.5, color: AppTheme.ink900, letterSpacing: 0.12),
+                        tele.isManagerCallerMode
+                            ? 'MODE: CALLER ACTIVE'
+                            : 'MODE: ${tele.supervisorLabel} SUPERVISION',
+                        style: AppTheme.label(
+                          size: 9.5,
+                          color: AppTheme.ink900,
+                          letterSpacing: 0.12,
+                        ),
                       ),
                     ],
                   ),
                   GestureDetector(
                     onTap: () => tele.toggleManagerCallerMode(),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.ink900,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        tele.isManagerCallerMode ? 'RETURN TO ${tele.supervisorLabel}' : 'SWITCH TO CALLER →',
-                        style: AppTheme.label(size: 8.5, color: AppTheme.limeYellow),
+                        tele.isManagerCallerMode
+                            ? 'RETURN TO ${tele.supervisorLabel}'
+                            : 'SWITCH TO CALLER →',
+                        style: AppTheme.label(
+                          size: 8.5,
+                          color: AppTheme.limeYellow,
+                        ),
                       ),
                     ),
                   ),
@@ -175,7 +227,10 @@ class ManagerDashboard extends StatelessWidget {
                 Expanded(
                   flex: 6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.ink900,
                       borderRadius: BorderRadius.circular(12),
@@ -183,12 +238,20 @@ class ManagerDashboard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.groups_rounded, size: 14, color: AppTheme.limeYellow),
+                        const Icon(
+                          Icons.groups_rounded,
+                          size: 14,
+                          color: AppTheme.limeYellow,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'MY TEAM: ${tele.currentUserTeam.toUpperCase()}',
-                            style: AppTheme.mono(size: 9.5, color: AppTheme.white, weight: FontWeight.w700),
+                            style: AppTheme.mono(
+                              size: 9.5,
+                              color: AppTheme.white,
+                              weight: FontWeight.w700,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -203,7 +266,10 @@ class ManagerDashboard extends StatelessWidget {
                 Expanded(
                   flex: 6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.ink900,
                       borderRadius: BorderRadius.circular(12),
@@ -211,23 +277,42 @@ class ManagerDashboard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_rounded, size: 14, color: AppTheme.limeYellow),
+                        const Icon(
+                          Icons.person_rounded,
+                          size: 14,
+                          color: AppTheme.limeYellow,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
-                              value: tele.userFilterOptions.contains(tele.selectedUserFilter) ? tele.selectedUserFilter : 'ALL',
+                              value:
+                                  tele.userFilterOptions.contains(
+                                    tele.selectedUserFilter,
+                                  )
+                                  ? tele.selectedUserFilter
+                                  : 'ALL',
                               isExpanded: true,
                               dropdownColor: AppTheme.ink900,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.limeYellow),
-                              style: AppTheme.mono(size: 10, color: AppTheme.white),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 16,
+                                color: AppTheme.limeYellow,
+                              ),
+                              style: AppTheme.mono(
+                                size: 10,
+                                color: AppTheme.white,
+                              ),
                               onChanged: (val) {
                                 if (val != null) tele.setUserFilter(val);
                               },
                               items: tele.userFilterOptions.map((u) {
                                 return DropdownMenuItem<String>(
                                   value: u,
-                                  child: Text(u == 'ALL' ? '👤 ALL CALLERS' : '👤 $u', overflow: TextOverflow.ellipsis),
+                                  child: Text(
+                                    u == 'ALL' ? '👤 ALL CALLERS' : '👤 $u',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 );
                               }).toList(),
                             ),
@@ -265,9 +350,14 @@ class ManagerDashboard extends StatelessWidget {
                 GestureDetector(
                   onTap: () => _showCalendarPicker(context, tele),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: hasCustomCalendar ? AppTheme.limeYellow : AppTheme.white,
+                      color: hasCustomCalendar
+                          ? AppTheme.limeYellow
+                          : AppTheme.white,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: AppTheme.ink900, width: 1.5),
                       boxShadow: AppTheme.neoShadowSm(color: AppTheme.ink900),
@@ -275,11 +365,19 @@ class ManagerDashboard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_month_rounded, size: 16, color: AppTheme.ink900),
+                        const Icon(
+                          Icons.calendar_month_rounded,
+                          size: 16,
+                          color: AppTheme.ink900,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           calendarHeaderLabel,
-                          style: AppTheme.label(size: 10, color: AppTheme.ink900, letterSpacing: 0.12),
+                          style: AppTheme.label(
+                            size: 10,
+                            color: AppTheme.ink900,
+                            letterSpacing: 0.12,
+                          ),
                         ),
                         if (hasCustomCalendar) ...[
                           const SizedBox(width: 6),
@@ -288,7 +386,11 @@ class ManagerDashboard extends StatelessWidget {
                               tele.setCustomDate(null);
                               tele.setDateRange(null);
                             },
-                            child: const Icon(Icons.cancel_rounded, size: 16, color: AppTheme.ink900),
+                            child: const Icon(
+                              Icons.cancel_rounded,
+                              size: 16,
+                              color: AppTheme.ink900,
+                            ),
                           ),
                         ],
                       ],
@@ -297,7 +399,11 @@ class ManagerDashboard extends StatelessWidget {
                 ),
                 Text(
                   tele.activeSimLabel,
-                  style: AppTheme.label(size: 9.5, color: AppTheme.muted, letterSpacing: 0.1),
+                  style: AppTheme.label(
+                    size: 9.5,
+                    color: AppTheme.muted,
+                    letterSpacing: 0.1,
+                  ),
                 ),
               ],
             ),
@@ -315,11 +421,19 @@ class ManagerDashboard extends StatelessWidget {
                     children: [
                       Text(
                         '01 · REALTIME TEAM CALL METRICS',
-                        style: AppTheme.label(size: 9, color: AppTheme.limeYellow, letterSpacing: 0.18),
+                        style: AppTheme.label(
+                          size: 9,
+                          color: AppTheme.limeYellow,
+                          letterSpacing: 0.18,
+                        ),
                       ),
                       Text(
                         tele.activeSimLabel,
-                        style: AppTheme.label(size: 9, color: AppTheme.muted, letterSpacing: 0.14),
+                        style: AppTheme.label(
+                          size: 9,
+                          color: AppTheme.muted,
+                          letterSpacing: 0.14,
+                        ),
                       ),
                     ],
                   ),
@@ -330,12 +444,18 @@ class ManagerDashboard extends StatelessWidget {
                     children: [
                       Text(
                         '$totalCalls',
-                        style: AppTheme.headline(size: 56, color: AppTheme.white),
+                        style: AppTheme.headline(
+                          size: 56,
+                          color: AppTheme.white,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         '$talkTimeFormatted talk',
-                        style: AppTheme.italicSerif(size: 20, color: AppTheme.greenGrass),
+                        style: AppTheme.italicSerif(
+                          size: 20,
+                          color: AppTheme.greenGrass,
+                        ),
                       ),
                     ],
                   ),
@@ -356,7 +476,9 @@ class ManagerDashboard extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         widthFactor: targetProgress,
                         child: Container(
-                          decoration: const BoxDecoration(color: AppTheme.greenNeon),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.greenNeon,
+                          ),
                         ),
                       ),
                     ),
@@ -377,11 +499,26 @@ class ManagerDashboard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('AVG DURATION', style: AppTheme.label(size: 9, color: AppTheme.muted)),
+                        Text(
+                          'AVG DURATION',
+                          style: AppTheme.label(size: 9, color: AppTheme.muted),
+                        ),
                         const SizedBox(height: 4),
-                        Text(avgDurationStr, style: AppTheme.headline(size: 26, color: AppTheme.greenDark)),
+                        Text(
+                          avgDurationStr,
+                          style: AppTheme.headline(
+                            size: 26,
+                            color: AppTheme.greenDark,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('per connected call', style: AppTheme.body(size: 10.5, color: AppTheme.muted)),
+                        Text(
+                          'per connected call',
+                          style: AppTheme.body(
+                            size: 10.5,
+                            color: AppTheme.muted,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -395,11 +532,26 @@ class ManagerDashboard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('CONNECT RATE', style: AppTheme.label(size: 9, color: AppTheme.muted)),
+                        Text(
+                          'CONNECT RATE',
+                          style: AppTheme.label(size: 9, color: AppTheme.muted),
+                        ),
                         const SizedBox(height: 4),
-                        Text('$connectRateStr%', style: AppTheme.headline(size: 26, color: AppTheme.ink900)),
+                        Text(
+                          '$connectRateStr%',
+                          style: AppTheme.headline(
+                            size: 26,
+                            color: AppTheme.ink900,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('$connectedCalls of $totalCalls picked', style: AppTheme.body(size: 10.5, color: AppTheme.muted)),
+                        Text(
+                          '$connectedCalls of $totalCalls picked',
+                          style: AppTheme.body(
+                            size: 10.5,
+                            color: AppTheme.muted,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -421,9 +573,21 @@ class ManagerDashboard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('02 · OUTGOING', style: AppTheme.label(size: 9, color: AppTheme.muted)),
+                            Text(
+                              '02 · OUTGOING',
+                              style: AppTheme.label(
+                                size: 9,
+                                color: AppTheme.muted,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('$outgoing', style: AppTheme.headline(size: 28, color: AppTheme.orangePill)),
+                            Text(
+                              '$outgoing',
+                              style: AppTheme.headline(
+                                size: 28,
+                                color: AppTheme.orangePill,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -437,9 +601,21 @@ class ManagerDashboard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('03 · INCOMING', style: AppTheme.label(size: 9, color: AppTheme.muted)),
+                            Text(
+                              '03 · INCOMING',
+                              style: AppTheme.label(
+                                size: 9,
+                                color: AppTheme.muted,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('$incoming', style: AppTheme.headline(size: 28, color: AppTheme.greenDark)),
+                            Text(
+                              '$incoming',
+                              style: AppTheme.headline(
+                                size: 28,
+                                color: AppTheme.greenDark,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -457,9 +633,21 @@ class ManagerDashboard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('04 · MISSED', style: AppTheme.label(size: 9, color: AppTheme.white)),
+                            Text(
+                              '04 · MISSED',
+                              style: AppTheme.label(
+                                size: 9,
+                                color: AppTheme.white,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('$missed', style: AppTheme.headline(size: 28, color: AppTheme.white)),
+                            Text(
+                              '$missed',
+                              style: AppTheme.headline(
+                                size: 28,
+                                color: AppTheme.white,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -473,9 +661,21 @@ class ManagerDashboard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('05 · NEVER ATTENDED', style: AppTheme.label(size: 9, color: AppTheme.muted)),
+                            Text(
+                              '05 · NEVER ATTENDED',
+                              style: AppTheme.label(
+                                size: 9,
+                                color: AppTheme.muted,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('$neverAttended', style: AppTheme.headline(size: 28, color: AppTheme.redMissed)),
+                            Text(
+                              '$neverAttended',
+                              style: AppTheme.headline(
+                                size: 28,
+                                color: AppTheme.redMissed,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -499,10 +699,17 @@ class ManagerDashboard extends StatelessWidget {
                     children: [
                       Text(
                         'HOURLY CALL DISTRIBUTION',
-                        style: AppTheme.label(size: 9, color: AppTheme.ink900, letterSpacing: 0.18),
+                        style: AppTheme.label(
+                          size: 9,
+                          color: AppTheme.ink900,
+                          letterSpacing: 0.18,
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.white,
                           borderRadius: BorderRadius.circular(999),
@@ -510,7 +717,10 @@ class ManagerDashboard extends StatelessWidget {
                         ),
                         child: Text(
                           'TODAY',
-                          style: AppTheme.label(size: 8, color: AppTheme.ink900),
+                          style: AppTheme.label(
+                            size: 8,
+                            color: AppTheme.ink900,
+                          ),
                         ),
                       ),
                     ],
@@ -532,14 +742,20 @@ class ManagerDashboard extends StatelessWidget {
                           children: [
                             if (isPeak) ...[
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.ink900,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   '$calls calls',
-                                  style: AppTheme.mono(size: 7.5, color: AppTheme.limeYellow),
+                                  style: AppTheme.mono(
+                                    size: 7.5,
+                                    color: AppTheme.limeYellow,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -548,14 +764,19 @@ class ManagerDashboard extends StatelessWidget {
                               width: 22,
                               height: (val * 60).clamp(6.0, 60.0),
                               decoration: BoxDecoration(
-                                color: isPeak ? AppTheme.greenNeon : AppTheme.ink900,
+                                color: isPeak
+                                    ? AppTheme.greenNeon
+                                    : AppTheme.ink900,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               item['hour'] as String,
-                              style: AppTheme.mono(size: 7.5, color: AppTheme.muted),
+                              style: AppTheme.mono(
+                                size: 7.5,
+                                color: AppTheme.muted,
+                              ),
                             ),
                           ],
                         );
@@ -587,14 +808,21 @@ class ManagerDashboard extends StatelessWidget {
                             children: [
                               Text(
                                 'TOP TALK TIME: $topTalkTimeName ($topTalkTimeDuration)',
-                                style: AppTheme.label(size: 10, color: AppTheme.white, letterSpacing: 0.12),
+                                style: AppTheme.label(
+                                  size: 10,
+                                  color: AppTheme.white,
+                                  letterSpacing: 0.12,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'Tap to view team leaderboard & rankings',
-                                style: AppTheme.body(size: 11, color: AppTheme.white.withValues(alpha: 0.85)),
+                                style: AppTheme.body(
+                                  size: 11,
+                                  color: AppTheme.white.withValues(alpha: 0.85),
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -605,7 +833,11 @@ class ManagerDashboard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward, size: 18, color: AppTheme.white),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 18,
+                    color: AppTheme.white,
+                  ),
                 ],
               ),
             ),
@@ -641,7 +873,10 @@ class ManagerDashboard extends StatelessWidget {
     );
   }
 
-  Future<void> _showCalendarPicker(BuildContext context, TeleProvider tele) async {
+  Future<void> _showCalendarPicker(
+    BuildContext context,
+    TeleProvider tele,
+  ) async {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -667,12 +902,21 @@ class ManagerDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text('FILTER BY CALENDAR DATE', style: AppTheme.headline(size: 16, color: AppTheme.ink900)),
+            Text(
+              'FILTER BY CALENDAR DATE',
+              style: AppTheme.headline(size: 16, color: AppTheme.ink900),
+            ),
             const SizedBox(height: 14),
             ListTile(
               leading: const Icon(Icons.event, color: AppTheme.ink900),
-              title: Text('Select Specific Date', style: AppTheme.bodyBold(size: 14)),
-              subtitle: Text('Filter team activity for a single specific day', style: AppTheme.body(size: 12, color: AppTheme.muted)),
+              title: Text(
+                'Select Specific Date',
+                style: AppTheme.bodyBold(size: 14),
+              ),
+              subtitle: Text(
+                'Filter team activity for a single specific day',
+                style: AppTheme.body(size: 12, color: AppTheme.muted),
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: const BorderSide(color: AppTheme.ink900, width: 1.5),
@@ -703,8 +947,14 @@ class ManagerDashboard extends StatelessWidget {
             const SizedBox(height: 10),
             ListTile(
               leading: const Icon(Icons.date_range, color: AppTheme.ink900),
-              title: Text('Select Date Range', style: AppTheme.bodyBold(size: 14)),
-              subtitle: Text('Filter team activity across custom date range', style: AppTheme.body(size: 12, color: AppTheme.muted)),
+              title: Text(
+                'Select Date Range',
+                style: AppTheme.bodyBold(size: 14),
+              ),
+              subtitle: Text(
+                'Filter team activity across custom date range',
+                style: AppTheme.body(size: 12, color: AppTheme.muted),
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: const BorderSide(color: AppTheme.ink900, width: 1.5),
@@ -716,10 +966,12 @@ class ManagerDashboard extends StatelessWidget {
                   context: context,
                   firstDate: DateTime.now().subtract(const Duration(days: 365)),
                   lastDate: DateTime.now(),
-                  initialDateRange: tele.selectedDateRange ?? DateTimeRange(
-                    start: DateTime.now().subtract(const Duration(days: 7)),
-                    end: DateTime.now(),
-                  ),
+                  initialDateRange:
+                      tele.selectedDateRange ??
+                      DateTimeRange(
+                        start: DateTime.now().subtract(const Duration(days: 7)),
+                        end: DateTime.now(),
+                      ),
                   builder: (c, child) => Theme(
                     data: Theme.of(c).copyWith(
                       colorScheme: const ColorScheme.light(

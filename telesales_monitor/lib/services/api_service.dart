@@ -15,15 +15,19 @@ class ApiService {
   static const String productionBaseUrl = 'https://telesales.askeva.io/api';
 
   /// Override per build: `flutter build apk --dart-define=API_URL=https://staging.example.com/api`.
-  static const String configuredBaseUrl = String.fromEnvironment('API_URL', defaultValue: productionBaseUrl);
+  static const String configuredBaseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: productionBaseUrl,
+  );
 
   /// Local backend on the Android emulator host. Only ever tried in debug builds.
-  static const String debugEmulatorBaseUrl = 'http://10.0.2.2:5004/api';
+  static const String debugEmulatorBaseUrl = 'http://10.0.2.2:5000/api';
 
   static List<String> get candidateBaseUrls => [
-        configuredBaseUrl,
-        if (kDebugMode && configuredBaseUrl != debugEmulatorBaseUrl) debugEmulatorBaseUrl,
-      ];
+    configuredBaseUrl,
+    if (kDebugMode && configuredBaseUrl != debugEmulatorBaseUrl)
+      debugEmulatorBaseUrl,
+  ];
 
   static String baseUrl = configuredBaseUrl;
 
@@ -46,23 +50,30 @@ class ApiService {
 
   /// Why the last request that returned null failed, in words a caller can act on ("" = no failure).
   static String lastNetworkError = '';
+  static String? demoTeamLeadersError;
 
   /// Plain-language reason for a network failure.
   @visibleForTesting
   static String describeNetworkError(Object e) {
     final raw = e.toString();
     final msg = raw.toLowerCase();
-    if (e is TimeoutException) return 'The server took too long to answer (slow or unstable internet).';
-    if (e is HandshakeException || msg.contains('certificate') || msg.contains('handshake')) {
+    if (e is TimeoutException)
+      return 'The server took too long to answer (slow or unstable internet).';
+    if (e is HandshakeException ||
+        msg.contains('certificate') ||
+        msg.contains('handshake')) {
       return 'Secure connection failed. Check that the phone\'s date & time are set to automatic.';
     }
-    if (msg.contains('failed host lookup') || msg.contains('no address associated')) {
+    if (msg.contains('failed host lookup') ||
+        msg.contains('no address associated')) {
       return 'This phone cannot find the server (no internet, or Private DNS / VPN / network permission blocking the app).';
     }
-    if (msg.contains('network is unreachable') || msg.contains('no route to host')) {
+    if (msg.contains('network is unreachable') ||
+        msg.contains('no route to host')) {
       return 'No internet connection on this phone.';
     }
-    if (msg.contains('connection refused') || msg.contains('connection reset')) {
+    if (msg.contains('connection refused') ||
+        msg.contains('connection reset')) {
       return 'The server refused the connection. Try again in a minute.';
     }
     return raw.length > 160 ? raw.substring(0, 160) : raw;
@@ -117,10 +128,14 @@ class ApiService {
             res = await _client.delete(uri, headers: headers).timeout(timeout);
             break;
           case 'PUT':
-            res = await _client.put(uri, headers: headers, body: jsonEncode(body ?? const {})).timeout(timeout);
+            res = await _client
+                .put(uri, headers: headers, body: jsonEncode(body ?? const {}))
+                .timeout(timeout);
             break;
           default:
-            res = await _client.post(uri, headers: headers, body: jsonEncode(body ?? const {})).timeout(timeout);
+            res = await _client
+                .post(uri, headers: headers, body: jsonEncode(body ?? const {}))
+                .timeout(timeout);
         }
         baseUrl = base;
         lastNetworkError = '';
@@ -142,11 +157,16 @@ class ApiService {
     return null;
   }
 
-  static void _checkAuthExpired(http.Response res, String path, String tokenAtSend) {
+  static void _checkAuthExpired(
+    http.Response res,
+    String path,
+    String tokenAtSend,
+  ) {
     if (res.statusCode != 401) return;
     final cleanPath = path.split('?').first;
     if (_publicAuthPaths.contains(cleanPath)) return;
-    if (tokenAtSend != _token) return; // a newer session already replaced this one
+    if (tokenAtSend != _token)
+      return; // a newer session already replaced this one
     try {
       final data = jsonDecode(res.body);
       if (data is Map && data['code'] == 'AUTH_REQUIRED') {
@@ -165,7 +185,8 @@ class ApiService {
     }
   }
 
-  static bool _ok(http.Response? res) => res != null && res.statusCode >= 200 && res.statusCode < 300;
+  static bool _ok(http.Response? res) =>
+      res != null && res.statusCode >= 200 && res.statusCode < 300;
 
   static String _query(Map<String, String?> params) {
     final parts = <String>[];
@@ -185,15 +206,22 @@ class ApiService {
     required bool asManager,
     int? simSlot,
   }) async {
-    final res = await _request('POST', asManager ? '/auth/admin-login' : '/auth/caller-verify', body: {
-      'identifier': identifier.trim(),
-      'password': password,
-      if (!asManager && simSlot != null) 'simSlot': simSlot,
-    });
+    final res = await _request(
+      'POST',
+      asManager ? '/auth/admin-login' : '/auth/caller-verify',
+      body: {
+        'identifier': identifier.trim(),
+        'password': password,
+        if (!asManager && simSlot != null) 'simSlot': simSlot,
+      },
+    );
     if (res == null) return null;
     final data = _decodeMap(res);
     if (data == null) {
-      return {'success': false, 'message': 'Unexpected server response (HTTP ${res.statusCode}).'};
+      return {
+        'success': false,
+        'message': 'Unexpected server response (HTTP ${res.statusCode}).',
+      };
     }
     if (!_ok(res)) data['success'] = false;
     return data;
@@ -208,14 +236,23 @@ class ApiService {
 
   /// POST /user/break: tells the admin / manager portal this user started ([onBreak] true, with
   /// [type] e.g. "Tea break" / "Lunch") or ended a break. Returns false when it did not reach the server.
-  static Future<bool> setBreak({required bool onBreak, String type = '', DateTime? startedAt}) async {
+  static Future<bool> setBreak({
+    required bool onBreak,
+    String type = '',
+    DateTime? startedAt,
+  }) async {
     if (_token.isEmpty) return false;
-    final res = await _request('POST', '/user/break', body: {
-      'onBreak': onBreak,
-      'type': type,
-      if (onBreak && startedAt != null) 'startedAt': startedAt.toUtc().toIso8601String(),
-    },
-        timeout: const Duration(seconds: 8));
+    final res = await _request(
+      'POST',
+      '/user/break',
+      body: {
+        'onBreak': onBreak,
+        'type': type,
+        if (onBreak && startedAt != null)
+          'startedAt': startedAt.toUtc().toIso8601String(),
+      },
+      timeout: const Duration(seconds: 8),
+    );
     return res != null && _ok(res);
   }
 
@@ -229,8 +266,14 @@ class ApiService {
   }
 
   /// POST /auth/link-phone (Bearer) — links the signed-in user's own number.
-  static Future<Map<String, dynamic>?> linkPhone({required String phone}) async {
-    final res = await _request('POST', '/auth/link-phone', body: {'phone': phone});
+  static Future<Map<String, dynamic>?> linkPhone({
+    required String phone,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/auth/link-phone',
+      body: {'phone': phone},
+    );
     if (res == null) return null;
     final data = _decodeMap(res) ?? {};
     if (!_ok(res)) data['success'] = false;
@@ -238,14 +281,21 @@ class ApiService {
   }
 
   /// POST /auth/check-phone (public). Response user is `{name, phone, role}` only.
-  static Future<Map<String, dynamic>?> checkPhoneRegistered(String phoneNumber) async {
+  static Future<Map<String, dynamic>?> checkPhoneRegistered(
+    String phoneNumber,
+  ) async {
     final last10 = last10Digits(phoneNumber);
-    final res = await _request('POST', '/auth/check-phone', body: {'phoneNumber': last10});
+    final res = await _request(
+      'POST',
+      '/auth/check-phone',
+      body: {'phoneNumber': last10},
+    );
     if (res == null) return null;
     final data = _decodeMap(res) ?? {};
     if (!_ok(res)) {
       data['success'] = false;
-      data['message'] ??= "Mobile number '$last10' is not registered. Please contact your manager or admin to add your account.";
+      data['message'] ??=
+          "Mobile number '$last10' is not registered. Please contact your manager or admin to add your account.";
     }
     return data;
   }
@@ -264,20 +314,27 @@ class ApiService {
       'callerName': callerName,
       'callerPhone': callerPhone,
       'calls': calls
-          .map((c) => {
-                'contactName': c.contactName,
-                'phoneNumber': c.phoneNumber,
-                'type': c.type.name,
-                // UTC with 'Z' so the server stores the exact instant whatever its own timezone is
-                'timestamp': c.timestamp.toUtc().toIso8601String(),
-                'durationSeconds': c.duration.inSeconds,
-                'simSlot': c.simSlot,
-                'note': c.note ?? '',
-              })
+          .map(
+            (c) => {
+              'contactName': c.contactName,
+              'phoneNumber': c.phoneNumber,
+              'type': c.type.name,
+              // UTC with 'Z' so the server stores the exact instant whatever its own timezone is
+              'timestamp': c.timestamp.toUtc().toIso8601String(),
+              'durationSeconds': c.duration.inSeconds,
+              'simSlot': c.simSlot,
+              'note': c.note ?? '',
+            },
+          )
           .toList(),
     };
     // Server de-duplicates (caller + number + exact time), so a later retry of the same batch is harmless.
-    final res = await _request('POST', '/calls/sync', body: payload, timeout: const Duration(seconds: 30));
+    final res = await _request(
+      'POST',
+      '/calls/sync',
+      body: payload,
+      timeout: const Duration(seconds: 30),
+    );
     if (!_ok(res)) return -1;
     final data = _decodeMap(res) ?? {};
     return asInt(data['count'] ?? data['syncedCount']);
@@ -298,21 +355,20 @@ class ApiService {
     String? loggedInRole,
     String? loggedInTeam,
     String? loggedInUserId,
-  }) =>
-      {
-        'callerPhone': callerPhone,
-        'callerName': callerName,
-        'team': team,
-        'userId': userId,
-        'timeFilter': timeFilter,
-        'period': period,
-        'date': date,
-        'startDate': startDate,
-        'endDate': endDate,
-        'loggedInRole': loggedInRole,
-        'loggedInTeam': loggedInTeam,
-        'loggedInUserId': loggedInUserId,
-      };
+  }) => {
+    'callerPhone': callerPhone,
+    'callerName': callerName,
+    'team': team,
+    'userId': userId,
+    'timeFilter': timeFilter,
+    'period': period,
+    'date': date,
+    'startDate': startDate,
+    'endDate': endDate,
+    'loggedInRole': loggedInRole,
+    'loggedInTeam': loggedInTeam,
+    'loggedInUserId': loggedInUserId,
+  };
 
   static Future<Map<String, dynamic>?> fetchDashboardStats({
     String? callerPhone,
@@ -328,20 +384,22 @@ class ApiService {
     String? loggedInTeam,
     String? loggedInUserId,
   }) async {
-    final q = _query(_scopeQuery(
-      callerPhone: callerPhone,
-      callerName: callerName,
-      team: team,
-      userId: userId,
-      timeFilter: timeFilter,
-      period: period,
-      date: date,
-      startDate: startDate,
-      endDate: endDate,
-      loggedInRole: loggedInRole,
-      loggedInTeam: loggedInTeam,
-      loggedInUserId: loggedInUserId,
-    ));
+    final q = _query(
+      _scopeQuery(
+        callerPhone: callerPhone,
+        callerName: callerName,
+        team: team,
+        userId: userId,
+        timeFilter: timeFilter,
+        period: period,
+        date: date,
+        startDate: startDate,
+        endDate: endDate,
+        loggedInRole: loggedInRole,
+        loggedInTeam: loggedInTeam,
+        loggedInUserId: loggedInUserId,
+      ),
+    );
     final res = await _request('GET', '/dashboard/stats$q');
     if (!_ok(res)) return null;
     final data = _decodeMap(res);
@@ -363,30 +421,42 @@ class ApiService {
     String? loggedInTeam,
     String? loggedInUserId,
   }) async {
-    final q = _query(_scopeQuery(
-      callerPhone: callerPhone,
-      callerName: callerName,
-      team: team,
-      userId: userId,
-      timeFilter: timeFilter,
-      period: period,
-      date: date,
-      startDate: startDate,
-      endDate: endDate,
-      loggedInRole: loggedInRole,
-      loggedInTeam: loggedInTeam,
-      loggedInUserId: loggedInUserId,
-    ));
+    final q = _query(
+      _scopeQuery(
+        callerPhone: callerPhone,
+        callerName: callerName,
+        team: team,
+        userId: userId,
+        timeFilter: timeFilter,
+        period: period,
+        date: date,
+        startDate: startDate,
+        endDate: endDate,
+        loggedInRole: loggedInRole,
+        loggedInTeam: loggedInTeam,
+        loggedInUserId: loggedInUserId,
+      ),
+    );
     final res = await _request('GET', '/employees/leaderboard$q');
     if (!_ok(res)) return null;
     final data = _decodeMap(res);
     final list = data?['employees'] ?? data?['data'];
     if (list is! List) return null;
-    return list.whereType<Map>().map((e) => employeeFromJson(Map<String, dynamic>.from(e))).toList();
+    return list
+        .whereType<Map>()
+        .map((e) => employeeFromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
-  static Future<bool> uploadProfilePhoto({required String userId, required String photoBase64}) async {
-    final res = await _request('POST', '/users/photo', body: {'photoBase64': photoBase64});
+  static Future<bool> uploadProfilePhoto({
+    required String userId,
+    required String photoBase64,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/users/photo',
+      body: {'photoBase64': photoBase64},
+    );
     return _ok(res);
   }
 
@@ -419,7 +489,10 @@ class ApiService {
     final data = _decodeMap(res);
     final list = data?['leads'];
     if (list is! List) return null;
-    return list.whereType<Map>().map((l) => leadFromJson(Map<String, dynamic>.from(l))).toList();
+    return list
+        .whereType<Map>()
+        .map((l) => leadFromJson(Map<String, dynamic>.from(l)))
+        .toList();
   }
 
   /// PUT /admin/leads/:id — callers may change status / notes / logAttempt on their own leads.
@@ -430,11 +503,15 @@ class ApiService {
     bool logAttempt = false,
   }) async {
     if (leadId.isEmpty) return false;
-    final res = await _request('PUT', '/admin/leads/${Uri.encodeComponent(leadId)}', body: {
-      if (status != null) 'status': leadStatusToWire(status),
-      'notes': ?notes,
-      if (logAttempt) 'logAttempt': true,
-    });
+    final res = await _request(
+      'PUT',
+      '/admin/leads/${Uri.encodeComponent(leadId)}',
+      body: {
+        if (status != null) 'status': leadStatusToWire(status),
+        'notes': ?notes,
+        if (logAttempt) 'logAttempt': true,
+      },
+    );
     return _ok(res);
   }
 
@@ -448,7 +525,8 @@ class ApiService {
     String? loggedInRole,
     String? loggedInTeam,
     String? loggedInUserId,
-    bool pinnedOnly = false, // only recordings pinned from the portal, however old
+    bool pinnedOnly =
+        false, // only recordings pinned from the portal, however old
   }) async {
     final q = _query({
       ..._scopeQuery(
@@ -467,7 +545,10 @@ class ApiService {
     final data = _decodeMap(res);
     final list = data?['recordings'];
     if (list is! List) return null;
-    return list.whereType<Map>().map((r) => recordingFromJson(Map<String, dynamic>.from(r), baseUrl)).toList();
+    return list
+        .whereType<Map>()
+        .map((r) => recordingFromJson(Map<String, dynamic>.from(r), baseUrl))
+        .toList();
   }
 
   /// Audio URL a media player can open (adds `?token=`).
@@ -503,12 +584,20 @@ class ApiService {
       'type': ?type,
       if (simSlot != null && simSlot > 0) 'simSlot': simSlot,
     };
-    final res = await _request('POST', '/recordings', body: payload, timeout: const Duration(seconds: 90));
+    final res = await _request(
+      'POST',
+      '/recordings',
+      body: payload,
+      timeout: const Duration(seconds: 90),
+    );
     return _ok(res);
   }
 
   static Future<bool> deleteRecording(String recordingId) async {
-    final res = await _request('DELETE', '/recordings/${Uri.encodeComponent(recordingId)}');
+    final res = await _request(
+      'DELETE',
+      '/recordings/${Uri.encodeComponent(recordingId)}',
+    );
     return _ok(res);
   }
 
@@ -519,12 +608,16 @@ class ApiService {
     required String commentedBy,
     required String commentedByRole,
   }) async {
-    final res = await _request('POST', '/recordings/${Uri.encodeComponent(recordingId)}/comment', body: {
-      'rating': rating,
-      'comment': comment,
-      'commentedBy': commentedBy,
-      'commentedByRole': commentedByRole,
-    });
+    final res = await _request(
+      'POST',
+      '/recordings/${Uri.encodeComponent(recordingId)}/comment',
+      body: {
+        'rating': rating,
+        'comment': comment,
+        'commentedBy': commentedBy,
+        'commentedByRole': commentedByRole,
+      },
+    );
     return _ok(res);
   }
 
@@ -543,76 +636,140 @@ class ApiService {
     String teamLeaderId = '',
     int? durationMinutes,
   }) async {
-    final res = await _request('POST', '/demos', body: {
-      if (teamLeaderId.isNotEmpty) 'teamLeaderId': teamLeaderId,
-      'durationMinutes': ?durationMinutes,
-      'leadId': leadId,
-      'clientName': clientName,
-      'clientPhone': clientPhone,
-      'scheduledAt': scheduledAt.toUtc().toIso8601String(),
-      'slot': slot,
-      'course': course,
-      'reason': reason,
-    });
+    final res = await _request(
+      'POST',
+      '/demos',
+      body: {
+        if (teamLeaderId.isNotEmpty) 'teamLeaderId': teamLeaderId,
+        'durationMinutes': ?durationMinutes,
+        'leadId': leadId,
+        'clientName': clientName,
+        'clientPhone': clientPhone,
+        'scheduledAt': scheduledAt.toUtc().toIso8601String(),
+        'slot': slot,
+        'course': course,
+        'reason': reason,
+      },
+    );
     if (_ok(res)) return null;
     if (res == null) return 'No connection. Check the internet and try again.';
     final msg = _decodeMap(res)?['message']?.toString() ?? '';
-    return msg.isNotEmpty ? msg : 'Could not book the demo (error ${res.statusCode}).';
+    return msg.isNotEmpty
+        ? msg
+        : 'Could not book the demo (error ${res.statusCode}).';
   }
 
-  /// GET /demos/team-leaders: Team Leaders a demo can be booked with, as {id, name}; null when offline.
+  /// GET /demos/team-leaders: Team Leaders a demo can be booked with, as {id, name}.
   static Future<List<Map<String, String>>?> fetchDemoTeamLeaders() async {
+    demoTeamLeadersError = null;
     final res = await _request('GET', '/demos/team-leaders');
-    if (!_ok(res)) return null;
+    if (res == null) {
+      demoTeamLeadersError = lastNetworkError.isNotEmpty
+          ? lastNetworkError
+          : 'No response from the server.';
+      return null;
+    }
+    if (!_ok(res)) {
+      final message = _decodeMap(res)?['message']?.toString().trim() ?? '';
+      final detail = message.isEmpty
+          ? ''
+          : ': ${message.substring(0, message.length.clamp(0, 160))}';
+      demoTeamLeadersError =
+          'Team-leader request failed (HTTP ${res.statusCode})$detail.';
+      return null;
+    }
     final list = _decodeMap(res)?['teamLeaders'];
-    if (list is! List) return null;
+    if (list is! List) {
+      demoTeamLeadersError =
+          'Unexpected team-leader response (HTTP ${res.statusCode}).';
+      return null;
+    }
     return list
         .whereType<Map>()
-        .map((t) => {'id': t['id']?.toString() ?? '', 'name': t['name']?.toString() ?? ''})
+        .map(
+          (t) => {
+            'id': t['id']?.toString() ?? '',
+            'name': t['name']?.toString() ?? '',
+          },
+        )
         .where((t) => t['id']!.isNotEmpty)
         .toList();
   }
 
   /// GET /demos/booked-slots: slot starts already booked for [teamLeaderId] on [day]; null when offline.
-  static Future<Set<DateTime>?> fetchBookedDemoSlots({required String teamLeaderId, required DateTime day}) async {
-    final date = '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-    final res = await _request('GET', '/demos/booked-slots${_query({'teamLeaderId': teamLeaderId, 'date': date})}');
+  static Future<Set<DateTime>?> fetchBookedDemoSlots({
+    required String teamLeaderId,
+    required DateTime day,
+  }) async {
+    final date =
+        '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    final res = await _request(
+      'GET',
+      '/demos/booked-slots${_query({'teamLeaderId': teamLeaderId, 'date': date})}',
+    );
     if (!_ok(res)) return null;
     final list = _decodeMap(res)?['slots'];
     if (list is! List) return null;
-    return list.map((v) => DateTime.tryParse(v.toString())?.toLocal()).whereType<DateTime>().toSet();
+    return list
+        .map((v) => DateTime.tryParse(v.toString())?.toLocal())
+        .whereType<DateTime>()
+        .toSet();
   }
 
   /// GET /demos/day: bookings and blocked slots for [teamLeaderId] on [day], as
   /// {bookings: [...], blocks: [...]}; null when offline.
-  static Future<Map<String, dynamic>?> fetchDemoDay({required String teamLeaderId, required DateTime day}) async {
-    final date = '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-    final res = await _request('GET', '/demos/day${_query({'teamLeaderId': teamLeaderId, 'date': date})}');
+  static Future<Map<String, dynamic>?> fetchDemoDay({
+    required String teamLeaderId,
+    required DateTime day,
+  }) async {
+    final date =
+        '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    final res = await _request(
+      'GET',
+      '/demos/day${_query({'teamLeaderId': teamLeaderId, 'date': date})}',
+    );
     if (!_ok(res)) return null;
     return _decodeMap(res);
   }
 
   /// GET /demos: the signed-in caller's demos from [from] on; null when offline.
-  static Future<List<Map<String, dynamic>>?> fetchMyDemos({required DateTime from}) async {
-    final res = await _request('GET', '/demos${_query({'from': from.toUtc().toIso8601String()})}');
+  static Future<List<Map<String, dynamic>>?> fetchMyDemos({
+    required DateTime from,
+  }) async {
+    final res = await _request(
+      'GET',
+      '/demos${_query({'from': from.toUtc().toIso8601String()})}',
+    );
     if (!_ok(res)) return null;
     final list = _decodeMap(res)?['demos'];
     if (list is! List) return null;
-    return list.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList();
+    return list
+        .whereType<Map>()
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
   }
 
   /// POST /demos/:id/cancel. Returns null when cancelled, otherwise the reason.
   static Future<String?> cancelDemo(String id) async {
-    final res = await _request('POST', '/demos/${Uri.encodeComponent(id)}/cancel', body: {});
+    final res = await _request(
+      'POST',
+      '/demos/${Uri.encodeComponent(id)}/cancel',
+      body: {},
+    );
     if (_ok(res)) return null;
     if (res == null) return 'No connection. Check the internet and try again.';
     final msg = _decodeMap(res)?['message']?.toString() ?? '';
-    return msg.isNotEmpty ? msg : 'Could not cancel the demo (error ${res.statusCode}).';
+    return msg.isNotEmpty
+        ? msg
+        : 'Could not cancel the demo (error ${res.statusCode}).';
   }
 
   // ------------------------------------------------------------------ Notifications
 
-  static Future<Map<String, dynamic>?> fetchCallerNotifications({String? phone, String? name}) async {
+  static Future<Map<String, dynamic>?> fetchCallerNotifications({
+    String? phone,
+    String? name,
+  }) async {
     final q = _query({'phone': phone, 'name': name});
     final res = await _request('GET', '/user/notifications$q');
     if (!_ok(res)) return null;
@@ -620,23 +777,38 @@ class ApiService {
   }
 
   static Future<bool> markNotificationRead(String notifId) async {
-    final res = await _request('POST', '/user/notifications/${Uri.encodeComponent(notifId)}/read', body: {});
+    final res = await _request(
+      'POST',
+      '/user/notifications/${Uri.encodeComponent(notifId)}/read',
+      body: {},
+    );
     return _ok(res);
   }
 
-  static Future<bool> markAllNotificationsRead({String? phone, String? name}) async {
-    final res = await _request('POST', '/user/notifications/read-all', body: {'phone': phone ?? '', 'name': name ?? ''});
+  static Future<bool> markAllNotificationsRead({
+    String? phone,
+    String? name,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/user/notifications/read-all',
+      body: {'phone': phone ?? '', 'name': name ?? ''},
+    );
     return _ok(res);
   }
 
   // ------------------------------------------------------------------ Contacts / users
 
-  static Future<bool> saveContact({required String phoneNumber, required String name, String? notes}) async {
-    final res = await _request('POST', '/user/contacts/save', body: {
-      'phoneNumber': phoneNumber,
-      'name': name,
-      'notes': notes ?? '',
-    });
+  static Future<bool> saveContact({
+    required String phoneNumber,
+    required String name,
+    String? notes,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/user/contacts/save',
+      body: {'phoneNumber': phoneNumber, 'name': name, 'notes': notes ?? ''},
+    );
     return _ok(res);
   }
 
@@ -652,27 +824,40 @@ class ApiService {
     String? managerId,
     String? managerName,
   }) async {
-    final res = await _request('POST', '/admin/users', body: {
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'password': password,
-      'role': role,
-      'team': team,
-      'dailyTarget': dailyTarget,
-      'managerId': managerId ?? '',
-      'managerName': managerName ?? '',
-    });
+    final res = await _request(
+      'POST',
+      '/admin/users',
+      body: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'role': role,
+        'team': team,
+        'dailyTarget': dailyTarget,
+        'managerId': managerId ?? '',
+        'managerName': managerName ?? '',
+      },
+    );
     if (res == null) {
       return {
         'success': false,
-        'message': 'No response from server. Check the user list before trying again — the account may already exist.',
+        'message':
+            'No response from server. Check the user list before trying again — the account may already exist.',
       };
     }
     final data = _decodeMap(res) ?? {};
     if (_ok(res)) {
-      return {'success': true, 'message': data['message'] ?? 'User created successfully', 'user': data['user']};
+      return {
+        'success': true,
+        'message': data['message'] ?? 'User created successfully',
+        'user': data['user'],
+      };
     }
-    return {'success': false, 'message': data['message'] ?? 'Failed to create user (HTTP ${res.statusCode})'};
+    return {
+      'success': false,
+      'message':
+          data['message'] ?? 'Failed to create user (HTTP ${res.statusCode})',
+    };
   }
 }
