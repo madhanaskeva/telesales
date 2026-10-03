@@ -631,6 +631,7 @@ class ApiService {
     required DateTime scheduledAt,
     required String slot,
     required String reason,
+<<<<<<< HEAD
     String course = '',
     String teamLeaderId = '',
     int? durationMinutes,
@@ -650,6 +651,17 @@ class ApiService {
         'reason': reason,
       },
     );
+=======
+  }) async {
+    final res = await _request('POST', '/demos', body: {
+      'leadId': leadId,
+      'clientName': clientName,
+      'clientPhone': clientPhone,
+      'scheduledAt': scheduledAt.toUtc().toIso8601String(),
+      'slot': slot,
+      'reason': reason,
+    });
+>>>>>>> destination/main
     if (_ok(res)) return null;
     if (res == null) return 'No connection. Check the internet and try again.';
     final msg = _decodeMap(res)?['message']?.toString() ?? '';
@@ -658,6 +670,7 @@ class ApiService {
         : 'Could not book the demo (error ${res.statusCode}).';
   }
 
+<<<<<<< HEAD
   /// GET /demos/team-leaders: Team Leaders a demo can be booked with, as {id, name}.
   static Future<List<Map<String, String>>?> fetchDemoTeamLeaders() async {
     demoTeamLeadersError = null;
@@ -763,6 +776,8 @@ class ApiService {
         : 'Could not cancel the demo (error ${res.statusCode}).';
   }
 
+=======
+>>>>>>> destination/main
   // ------------------------------------------------------------------ Notifications
 
   static Future<Map<String, dynamic>?> fetchCallerNotifications({
