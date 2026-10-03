@@ -20,18 +20,19 @@ class ApiService {
     defaultValue: productionBaseUrl,
   );
 
-  /// Local backend on the Android emulator host. Only ever tried in debug builds.
+  /// Local backend on the Android emulator host. Only reachable from the emulator, never from a
+  /// real phone, so it is used only when asked for: `flutter run --dart-define=USE_LOCAL_API=true`.
   static const String debugEmulatorBaseUrl = 'http://10.0.2.2:5000/api';
+  static const bool useLocalApi = bool.fromEnvironment('USE_LOCAL_API');
+
+  static bool get _useEmulator =>
+      kDebugMode && useLocalApi && configuredBaseUrl == productionBaseUrl;
 
   static List<String> get candidateBaseUrls =>
-      kDebugMode && configuredBaseUrl == productionBaseUrl
-      ? [debugEmulatorBaseUrl]
-      : [configuredBaseUrl];
+      _useEmulator ? [debugEmulatorBaseUrl] : [configuredBaseUrl];
 
   static final String preferredBaseUrl =
-      kDebugMode && configuredBaseUrl == productionBaseUrl
-      ? debugEmulatorBaseUrl
-      : configuredBaseUrl;
+      _useEmulator ? debugEmulatorBaseUrl : configuredBaseUrl;
   static String baseUrl = preferredBaseUrl;
 
   static String _token = '';
