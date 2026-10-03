@@ -20,18 +20,14 @@ class ApiService {
     defaultValue: productionBaseUrl,
   );
 
-  /// Local backend on the Android emulator host. Only ever tried in debug builds.
+  /// Local backend on the Android emulator host. Use with
+  /// `--dart-define=API_URL=http://10.0.2.2:5000/api` when developing locally.
+  /// Physical devices must use the computer's LAN IP instead.
   static const String debugEmulatorBaseUrl = 'http://10.0.2.2:5000/api';
 
-  static List<String> get candidateBaseUrls =>
-      kDebugMode && configuredBaseUrl == productionBaseUrl
-      ? [debugEmulatorBaseUrl]
-      : [configuredBaseUrl];
+  static List<String> get candidateBaseUrls => [configuredBaseUrl];
 
-  static final String preferredBaseUrl =
-      kDebugMode && configuredBaseUrl == productionBaseUrl
-      ? debugEmulatorBaseUrl
-      : configuredBaseUrl;
+  static final String preferredBaseUrl = configuredBaseUrl;
   static String baseUrl = preferredBaseUrl;
 
   static String _token = '';

@@ -348,12 +348,9 @@ void main() {
       );
     });
 
-    test(
-      'debug builds prefer the local emulator backend when no API URL is configured',
-      () {
-        expect(ApiService.preferredBaseUrl, ApiService.debugEmulatorBaseUrl);
-        expect(ApiService.candidateBaseUrls, [ApiService.debugEmulatorBaseUrl]);
-      },
-    );
+    test('uses the configured API URL in debug and release builds', () {
+      expect(ApiService.preferredBaseUrl, ApiService.configuredBaseUrl);
+      expect(ApiService.candidateBaseUrls, [ApiService.configuredBaseUrl]);
+    });
   });
 }
