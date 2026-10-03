@@ -183,19 +183,14 @@ class ManagerDashboard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-<<<<<<< HEAD
                         tele.isManagerCallerMode
                             ? 'MODE: CALLER ACTIVE'
-                            : 'MODE: ${tele.supervisorLabel} SUPERVISION',
+                            : 'MODE: MANAGER SUPERVISION',
                         style: AppTheme.label(
                           size: 9.5,
                           color: AppTheme.ink900,
                           letterSpacing: 0.12,
                         ),
-=======
-                        tele.isManagerCallerMode ? 'MODE: CALLER ACTIVE' : 'MODE: MANAGER SUPERVISION',
-                        style: AppTheme.label(size: 9.5, color: AppTheme.ink900, letterSpacing: 0.12),
->>>>>>> destination/main
                       ),
                     ],
                   ),
@@ -211,18 +206,13 @@ class ManagerDashboard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-<<<<<<< HEAD
                         tele.isManagerCallerMode
-                            ? 'RETURN TO ${tele.supervisorLabel}'
+                            ? 'RETURN TO MANAGER'
                             : 'SWITCH TO CALLER →',
                         style: AppTheme.label(
                           size: 8.5,
                           color: AppTheme.limeYellow,
                         ),
-=======
-                        tele.isManagerCallerMode ? 'RETURN TO MANAGER' : 'SWITCH TO CALLER →',
-                        style: AppTheme.label(size: 8.5, color: AppTheme.limeYellow),
->>>>>>> destination/main
                       ),
                     ),
                   ),

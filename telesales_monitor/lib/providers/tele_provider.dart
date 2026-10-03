@@ -130,6 +130,7 @@ class TeleProvider extends ChangeNotifier {
       _startPeriodicSyncTimer();
       if (_isLoggedIn) {
         fetchNotifications();
+        unawaited(_sendPresenceHeartbeat());
         fetchBackendData();
         // (Re)start call tracking while we are allowed to: after a reboot, an update or a kill
         syncCallMonitor();
@@ -512,14 +513,23 @@ class TeleProvider extends ChangeNotifier {
 
   Timer? _syncPollingTimer;
 
-  /// Poll every 60 s while the app is in the foreground and a user is signed in: profile (daily
-  /// target), call counts and notifications. Catches changes the call-log observer missed.
+  Future<void> _sendPresenceHeartbeat() async {
+    if (!_isLoggedIn || !_appInForeground) return;
+    final acknowledged = await ApiService.heartbeat();
+    if (!acknowledged && _isLoggedIn) {
+      final reason = ApiService.lastNetworkError;
+      debugPrint('Presence heartbeat was not acknowledged${reason.isNotEmpty ? ': $reason' : '.'}');
+    }
+  }
+
+  /// Refresh profile, presence, call counts and notifications every 60 s while signed in.
   void _startPeriodicSyncTimer() {
     _syncPollingTimer?.cancel();
     if (!_appInForeground) return;
     if (_isLoggedIn) ApiService.setBreak(onBreak: _isOnBreak, type: _currentBreakType, startedAt: _breakStartTime); // portal catches up on app open
     _syncPollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (_isLoggedIn && _appInForeground) {
+        unawaited(_sendPresenceHeartbeat());
         refreshProfile();
         fetchBackendData();
         _refreshLiveNumbers();
