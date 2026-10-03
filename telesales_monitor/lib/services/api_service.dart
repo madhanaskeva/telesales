@@ -23,13 +23,16 @@ class ApiService {
   /// Local backend on the Android emulator host. Only ever tried in debug builds.
   static const String debugEmulatorBaseUrl = 'http://10.0.2.2:5000/api';
 
-  static List<String> get candidateBaseUrls => [
-    configuredBaseUrl,
-    if (kDebugMode && configuredBaseUrl != debugEmulatorBaseUrl)
-      debugEmulatorBaseUrl,
-  ];
+  static List<String> get candidateBaseUrls =>
+      kDebugMode && configuredBaseUrl == productionBaseUrl
+      ? [debugEmulatorBaseUrl]
+      : [configuredBaseUrl];
 
-  static String baseUrl = configuredBaseUrl;
+  static final String preferredBaseUrl =
+      kDebugMode && configuredBaseUrl == productionBaseUrl
+      ? debugEmulatorBaseUrl
+      : configuredBaseUrl;
+  static String baseUrl = preferredBaseUrl;
 
   static String _token = '';
   static String get token => _token;

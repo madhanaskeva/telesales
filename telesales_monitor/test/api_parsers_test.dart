@@ -7,15 +7,21 @@ import 'package:telesales_monitor/models/lead_model.dart';
 import 'package:telesales_monitor/services/api_parsers.dart';
 import 'package:telesales_monitor/services/api_service.dart';
 
-CallLogModel call(String id, String phone, DateTime at, {CallType type = CallType.outgoing, int slot = 1}) => CallLogModel(
-      id: id,
-      contactName: 'C$id',
-      phoneNumber: phone,
-      type: type,
-      duration: const Duration(seconds: 30),
-      timestamp: at,
-      simSlot: slot,
-    );
+CallLogModel call(
+  String id,
+  String phone,
+  DateTime at, {
+  CallType type = CallType.outgoing,
+  int slot = 1,
+}) => CallLogModel(
+  id: id,
+  contactName: 'C$id',
+  phoneNumber: phone,
+  type: type,
+  duration: const Duration(seconds: 30),
+  timestamp: at,
+  simSlot: slot,
+);
 
 void main() {
   group('asInt', () {
@@ -132,29 +138,44 @@ void main() {
       expect(e.dailyTarget, kDefaultDailyTarget);
     });
 
-    test('recordingFromJson builds an absolute audio url and prefers callStartedAt', () {
-      final r = recordingFromJson({
-        'id': 'R1',
-        'callerName': 'Asha',
-        'phoneNumber': '9825012340',
-        'durationSeconds': 65.0,
-        'audioUrl': '/api/recordings/R1/audio',
-        'fileName': 'OUT_CALL_REC_1.wav',
-        'callStartedAt': '2026-09-01T10:00:00.000Z',
-        'createdAt': '2026-09-01T10:05:00.000Z',
-        'rating': 4.5,
-      }, 'https://telesales.askeva.io/api');
-      expect(r.audioUrl, 'https://telesales.askeva.io/api/recordings/R1/audio');
-      expect(r.duration, const Duration(seconds: 65));
-      expect(r.date.toUtc(), DateTime.utc(2026, 9, 1, 10));
-      expect(r.rating, 4);
-      expect(r.fileName, 'OUT_CALL_REC_1.wav');
-    });
+    test(
+      'recordingFromJson builds an absolute audio url and prefers callStartedAt',
+      () {
+        final r = recordingFromJson({
+          'id': 'R1',
+          'callerName': 'Asha',
+          'phoneNumber': '9825012340',
+          'durationSeconds': 65.0,
+          'audioUrl': '/api/recordings/R1/audio',
+          'fileName': 'OUT_CALL_REC_1.wav',
+          'callStartedAt': '2026-09-01T10:00:00.000Z',
+          'createdAt': '2026-09-01T10:05:00.000Z',
+          'rating': 4.5,
+        }, 'https://telesales.askeva.io/api');
+        expect(
+          r.audioUrl,
+          'https://telesales.askeva.io/api/recordings/R1/audio',
+        );
+        expect(r.duration, const Duration(seconds: 65));
+        expect(r.date.toUtc(), DateTime.utc(2026, 9, 1, 10));
+        expect(r.rating, 4);
+        expect(r.fileName, 'OUT_CALL_REC_1.wav');
+      },
+    );
 
     test('withTokenQuery appends the token once', () {
-      expect(withTokenQuery('https://h/api/recordings/1/audio', 'abc'), 'https://h/api/recordings/1/audio?token=abc');
-      expect(withTokenQuery('https://h/a?x=1', 'abc'), 'https://h/a?x=1&token=abc');
-      expect(withTokenQuery('https://h/a?token=zzz', 'abc'), 'https://h/a?token=zzz');
+      expect(
+        withTokenQuery('https://h/api/recordings/1/audio', 'abc'),
+        'https://h/api/recordings/1/audio?token=abc',
+      );
+      expect(
+        withTokenQuery('https://h/a?x=1', 'abc'),
+        'https://h/a?x=1&token=abc',
+      );
+      expect(
+        withTokenQuery('https://h/a?token=zzz', 'abc'),
+        'https://h/a?token=zzz',
+      );
       expect(withTokenQuery('https://h/a', ''), 'https://h/a');
     });
   });
@@ -169,7 +190,13 @@ void main() {
 
     test('replays recent calls so late device updates reach the server', () {
       expect(callsNewerThan(calls, null).length, 3);
-      expect(callsNewerThan(calls, t0.add(const Duration(minutes: 10))).map((c) => c.id), ['1', '2', '3']);
+      expect(
+        callsNewerThan(
+          calls,
+          t0.add(const Duration(minutes: 10)),
+        ).map((c) => c.id),
+        ['1', '2', '3'],
+      );
       expect(callsNewerThan(calls, t0.add(const Duration(hours: 1))), isEmpty);
     });
 
@@ -188,22 +215,38 @@ void main() {
     ];
 
     test('same number, closest start time wins', () {
-      final m = matchCallForRecording(calls, phone: '+91 98250 12340', startedAt: t0.add(const Duration(minutes: 2, seconds: 50)));
+      final m = matchCallForRecording(
+        calls,
+        phone: '+91 98250 12340',
+        startedAt: t0.add(const Duration(minutes: 2, seconds: 50)),
+      );
       expect(m?.id, 'b');
     });
 
     test('never attaches to a different customer number', () {
-      final m = matchCallForRecording(calls, phone: '9111111111', startedAt: t0);
+      final m = matchCallForRecording(
+        calls,
+        phone: '9111111111',
+        startedAt: t0,
+      );
       expect(m, isNull);
     });
 
     test('outside the 5 minute window there is no match', () {
-      final m = matchCallForRecording(calls, phone: '9825012340', startedAt: t0.add(const Duration(minutes: 30)));
+      final m = matchCallForRecording(
+        calls,
+        phone: '9825012340',
+        startedAt: t0.add(const Duration(minutes: 30)),
+      );
       expect(m, isNull);
     });
 
     test('unknown number falls back to the closest call in time', () {
-      final m = matchCallForRecording(calls, phone: '', startedAt: t0.add(const Duration(seconds: 50)));
+      final m = matchCallForRecording(
+        calls,
+        phone: '',
+        startedAt: t0.add(const Duration(seconds: 50)),
+      );
       expect(m?.id, 'c');
     });
   });
@@ -217,38 +260,100 @@ void main() {
     });
 
     test('past or current times move to 10:00 next day', () {
-      expect(normalizeCallbackTime(DateTime(2026, 9, 18, 9), now), DateTime(2026, 9, 19, 10));
+      expect(
+        normalizeCallbackTime(DateTime(2026, 9, 18, 9), now),
+        DateTime(2026, 9, 19, 10),
+      );
       expect(normalizeCallbackTime(now, now), DateTime(2026, 9, 19, 10));
     });
 
     test('month rollover', () {
-      expect(normalizeCallbackTime(DateTime(2026, 9, 30, 8), DateTime(2026, 9, 30, 20)), DateTime(2026, 10, 1, 10));
+      expect(
+        normalizeCallbackTime(
+          DateTime(2026, 9, 30, 8),
+          DateTime(2026, 9, 30, 20),
+        ),
+        DateTime(2026, 10, 1, 10),
+      );
     });
 
     test('default callback is never in the past', () {
-      expect(defaultCallbackTime(DateTime(2026, 9, 18, 10)), DateTime(2026, 9, 18, 13));
+      expect(
+        defaultCallbackTime(DateTime(2026, 9, 18, 10)),
+        DateTime(2026, 9, 18, 13),
+      );
       // 17:00 + 3h clamps to 18:00 today (still in the future)
-      expect(defaultCallbackTime(DateTime(2026, 9, 18, 17)), DateTime(2026, 9, 18, 18));
+      expect(
+        defaultCallbackTime(DateTime(2026, 9, 18, 17)),
+        DateTime(2026, 9, 18, 18),
+      );
       // 20:00: 18:00 today already passed -> tomorrow 10:00
-      expect(defaultCallbackTime(DateTime(2026, 9, 18, 20)), DateTime(2026, 9, 19, 10));
+      expect(
+        defaultCallbackTime(DateTime(2026, 9, 18, 20)),
+        DateTime(2026, 9, 19, 10),
+      );
       // Early morning: clamps up to 9:00 today
-      expect(defaultCallbackTime(DateTime(2026, 9, 18, 2)), DateTime(2026, 9, 18, 9));
+      expect(
+        defaultCallbackTime(DateTime(2026, 9, 18, 2)),
+        DateTime(2026, 9, 18, 9),
+      );
     });
   });
 
   group('host failover', () {
-    test('only pre-send connection failures may be retried on another host', () {
-      expect(ApiService.isConnectionError(const SocketException('Failed host lookup: telesales.askeva.io')), isTrue);
-      expect(ApiService.isConnectionError(const SocketException('Connection refused')), isTrue);
-      expect(ApiService.isConnectionError(http.ClientException('Connection refused')), isTrue);
-      expect(ApiService.isConnectionError(const SocketException('Connection reset by peer')), isFalse);
-      expect(ApiService.isConnectionError(http.ClientException('Connection closed while receiving data')), isFalse);
-      expect(ApiService.isConnectionError(Exception('timeout')), isFalse);
+    test(
+      'only pre-send connection failures may be retried on another host',
+      () {
+        expect(
+          ApiService.isConnectionError(
+            const SocketException('Failed host lookup: telesales.askeva.io'),
+          ),
+          isTrue,
+        );
+        expect(
+          ApiService.isConnectionError(
+            const SocketException('Connection refused'),
+          ),
+          isTrue,
+        );
+        expect(
+          ApiService.isConnectionError(
+            http.ClientException('Connection refused'),
+          ),
+          isTrue,
+        );
+        expect(
+          ApiService.isConnectionError(
+            const SocketException('Connection reset by peer'),
+          ),
+          isFalse,
+        );
+        expect(
+          ApiService.isConnectionError(
+            http.ClientException('Connection closed while receiving data'),
+          ),
+          isFalse,
+        );
+        expect(ApiService.isConnectionError(Exception('timeout')), isFalse);
+      },
+    );
+
+    test('configured production host defaults to HTTPS', () {
+      expect(ApiService.configuredBaseUrl, startsWith('https://'));
+      expect(
+        ApiService.candidateBaseUrls.where(
+          (u) => u.startsWith('http://') && !u.contains('10.0.2.2'),
+        ),
+        isEmpty,
+      );
     });
 
-    test('production build defaults to the HTTPS host only', () {
-      expect(ApiService.configuredBaseUrl, startsWith('https://'));
-      expect(ApiService.candidateBaseUrls.where((u) => u.startsWith('http://') && !u.contains('10.0.2.2')), isEmpty);
-    });
+    test(
+      'debug builds prefer the local emulator backend when no API URL is configured',
+      () {
+        expect(ApiService.preferredBaseUrl, ApiService.debugEmulatorBaseUrl);
+        expect(ApiService.candidateBaseUrls, [ApiService.debugEmulatorBaseUrl]);
+      },
+    );
   });
 }

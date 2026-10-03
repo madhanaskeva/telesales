@@ -48,6 +48,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.tri
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
+    if (origin === 'null' && process.env.NODE_ENV !== 'production') return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
     if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return cb(null, true);
     return cb(null, false);

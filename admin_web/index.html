@@ -965,11 +965,14 @@
     // ==========================================
     // Same-origin API when the portal is served by the backend; the local backend (port 5000) when opened
     // from a dev static server such as VS Code Live Server; the hosted API only when opened from file://
-   const IS_HTTP = /^https?:$/.test(window.location.protocol);
+    const IS_HTTP = /^https?:$/.test(window.location.protocol);
+    const IS_FILE = window.location.protocol === 'file:';
     const IS_DEV_STATIC = IS_HTTP && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && window.location.port !== '5000';
-    const API_BASE = IS_DEV_STATIC ? `http://${window.location.hostname}:5000/api`
-      : IS_HTTP ? '/api' : 'http://localhost:5000/api';
-      // : IS_HTTP ? '/api' : 'http://localhost:5000/api';
+    const LOCAL_API_BASE = 'http://localhost:5000/api';
+    const HOSTED_API_BASE = 'https://telesales.askeva.io/api';
+    const API_BASE = IS_DEV_STATIC ? LOCAL_API_BASE
+      : IS_HTTP ? '/api' : (IS_FILE ? LOCAL_API_BASE : HOSTED_API_BASE);
+    const FALLBACK_API_BASE = API_BASE === HOSTED_API_BASE ? LOCAL_API_BASE : (API_BASE === LOCAL_API_BASE ? HOSTED_API_BASE : null);
     const TOKEN_KEY = 'askeva_admin_token';
     const USER_KEY = 'askeva_admin_user';
     const REFRESH_MS = 60 * 1000;
@@ -1001,7 +1004,7 @@
       }
     }
 
-    // Single entry point for every API call: base URL, Bearer token, JSON in/out, session expiry
+    // Single entry point for every API call: base URL, auth JSON in/out, and session expiry.
     async function apiFetch(path, opts = {}) {
       const headers = Object.assign({ Accept: 'application/json' }, opts.headers || {});
       const token = getToken();
@@ -1011,23 +1014,32 @@
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify(body);
       }
-      let res;
-      try {
-        res = await fetch(`${API_BASE}${path}`, { method: opts.method || 'GET', headers, body });
-      } catch (_) {
-        throw new ApiError('Could not reach the server — check your connection.', 0, null, true);
+
+      const bases = [API_BASE];
+      if (FALLBACK_API_BASE && !bases.includes(FALLBACK_API_BASE)) bases.push(FALLBACK_API_BASE);
+
+      for (const base of bases) {
+        let res;
+        try {
+          res = await fetch(`${base}${path}`, { method: opts.method || 'GET', headers, body });
+        } catch (_) {
+          continue;
+        }
+
+        let json = null;
+        try { json = await res.json(); } catch (_) { json = null; }
+        if (res.status === 401 && !opts.noAuth && (!json || json.code === 'AUTH_REQUIRED')) {
+          expireSession('Your session has expired — please sign in again.');
+          throw new ApiError('Session expired', 401, json);
+        }
+        if (!res.ok || (json && json.success === false)) {
+          const msg = (json && (json.message || json.error)) || `Request failed (HTTP ${res.status})`;
+          throw new ApiError(msg, res.status, json);
+        }
+        return json || {};
       }
-      let json = null;
-      try { json = await res.json(); } catch (_) { json = null; }
-      if (res.status === 401 && !opts.noAuth && (!json || json.code === 'AUTH_REQUIRED')) {
-        expireSession('Your session has expired — please sign in again.');
-        throw new ApiError('Session expired', 401, json);
-      }
-      if (!res.ok || (json && json.success === false)) {
-        const msg = (json && (json.message || json.error)) || `Request failed (HTTP ${res.status})`;
-        throw new ApiError(msg, res.status, json);
-      }
-      return json || {};
+
+      throw new ApiError('Could not reach the server — check your connection.', 0, null, true);
     }
 
     // <audio> cannot send headers, so the token rides in the query string
@@ -5485,3 +5497,5 @@
   </script>
 </body>
 </html>
+                                                
+                    

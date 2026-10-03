@@ -30,12 +30,12 @@ d:/Projects/Telesales/backend/
 
 ## 🚀 How to Run
 
-1. Open a terminal in `d:/Projects/Telesales/backend`:
+1. Open a terminal in the repository's `backend` directory:
    ```powershell
    npm install
    npm start
    ```
-2. The server runs at `http://localhost:5004`.
+2. The backend and admin portal run at `http://localhost:5000` by default. A separately served local frontend can call the API at `http://localhost:5000/api`.
 
 ---
 
