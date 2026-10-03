@@ -30,7 +30,7 @@ const RecordingSchema = new mongoose.Schema({
   contactName: { type: String, default: '' },
   phoneNumber: { type: String, required: true },
   type: { type: String, enum: ['INCOMING', 'OUTGOING', ''], default: '' },
-  // Stored (unique) file name on disk, and the name the device sent (used for idempotent retries)
+  // Stored name/identifier and the original device name (used for legacy lookup and idempotent retries)
   fileName: { type: String, default: '' },
   originalFileName: { type: String, default: '' },
   callStartedAt: { type: Date, default: null },
@@ -41,7 +41,9 @@ const RecordingSchema = new mongoose.Schema({
   timeStr: { type: String, default: '' },
   durationSeconds: { type: Number, default: 0 },
   audioUrl: { type: String, default: '' },
-  audioData: { type: String, default: '' }, // Base64 audio (kept only when small); never returned by list APIs
+  cloudinaryPublicId: { type: String, default: '' },
+  cloudinarySecureUrl: { type: String, default: '' },
+  audioData: { type: String, default: '' }, // Legacy base64 fallback; new uploads are stored in Cloudinary
   transcript: { type: String, default: '' },
   storageSizeBytes: { type: Number, default: 0 },
   // Review

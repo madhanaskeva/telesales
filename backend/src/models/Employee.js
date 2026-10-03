@@ -22,6 +22,7 @@ const EmployeeSchema = new mongoose.Schema({
   managerName: { type: String, default: '' },
   photoBase64: { type: String, default: '' },
   avatarUrl: { type: String, default: '' },
+  cloudinaryPhotoPublicId: { type: String, default: '' },
   // Presence (services/presence.js): last signed-in request, last explicit logout
   lastSeenAt: { type: Date, default: null },
   loggedOutAt: { type: Date, default: null },

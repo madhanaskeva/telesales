@@ -4,6 +4,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 const Recording = require('../models/Recording');
 const CallLog = require('../models/CallLog');
 const Employee = require('../models/Employee');
@@ -15,6 +16,7 @@ const {
 const { resolveScope, recordingQueryFor, ownerInScope, findEmployeeByRef } = require('../services/scope');
 const { pickClosestCall, recordingStartMs, parseRange, LINK_WINDOW_MS } = require('../services/matching');
 const { applyRecordingToLead } = require('../services/callStats');
+const { getCloudName, decodeBase64, uploadBuffer, deleteAsset } = require('../services/cloudinary');
 
 const router = express.Router();
 const uploadsDir = path.join(__dirname, '../../uploads/recordings');
@@ -147,6 +149,43 @@ function streamAudioBuffer(buffer, req, res, mimeType) {
   });
 }
 
+function streamCloudinaryAudio(secureUrl, req, res) {
+  const cloudName = getCloudName();
+  const remoteUrl = new URL(secureUrl);
+  if (remoteUrl.protocol !== 'https:' || remoteUrl.hostname !== 'res.cloudinary.com'
+    || !remoteUrl.pathname.startsWith(`/${cloudName}/video/upload/`)) {
+    throw new Error('Stored Cloudinary audio URL is invalid.');
+  }
+
+  const headers = { 'Accept-Encoding': 'identity' };
+  if (req.headers.range) headers.Range = req.headers.range;
+  const remoteRequest = https.get(remoteUrl, { headers }, remoteResponse => {
+    const status = remoteResponse.statusCode || 502;
+    if (status >= 400 && status !== 416) {
+      remoteResponse.resume();
+      return res.status(status === 404 ? 404 : 502).json({
+        success: false,
+        message: status === 404 ? 'Original call audio recording not found' : 'Could not retrieve the call audio from Cloudinary.',
+      });
+    }
+    res.statusCode = status;
+    ['accept-ranges', 'content-length', 'content-range', 'content-type'].forEach(name => {
+      const value = remoteResponse.headers[name];
+      if (value) res.setHeader(name, value);
+    });
+    remoteResponse.on('error', err => {
+      if (!res.headersSent) serverError(res, err, 'recordings.audio.cloudinary');
+      else res.destroy(err);
+    });
+    remoteResponse.pipe(res);
+  });
+  remoteRequest.setTimeout(30000, () => remoteRequest.destroy(new Error('Timed out retrieving call audio from Cloudinary.')));
+  remoteRequest.on('error', err => {
+    if (!res.headersSent) serverError(res, err, 'recordings.audio.cloudinary');
+    else res.destroy(err);
+  });
+}
+
 function getWavDurationSeconds(filePath) {
   try {
     const size = fileSize(filePath);
@@ -211,6 +250,8 @@ router.get(['/api/recordings/:id/audio', '/api/admin/recordings/:id/audio', '/ap
       return res.status(403).json({ success: false, message: 'You do not have permission for this recording.' });
     }
 
+    if (rec.cloudinarySecureUrl) return streamCloudinaryAudio(rec.cloudinarySecureUrl, req, res);
+
     const names = [rec.fileName, rec.audioUrl ? path.basename(rec.audioUrl) : null].filter(Boolean);
     for (const name of names) {
       const p = diskPath(name);
@@ -221,9 +262,7 @@ router.get(['/api/recordings/:id/audio', '/api/admin/recordings/:id/audio', '/ap
       const buffer = Buffer.from(rec.audioData.replace(/^data:audio\/[\w.+-]+;base64,/, ''), 'base64');
       if (buffer.length > 100) {
         const name = rec.fileName || `${rec.id}.wav`;
-        const p = diskPath(name);
-        if (p) { try { fs.writeFileSync(p, buffer); } catch (_) { /* cache only */ } }
-        return streamAudioBuffer(buffer, req, res, getAudioMimeType(name, p));
+        return streamAudioBuffer(buffer, req, res, getAudioMimeType(name));
       }
     }
 
@@ -287,7 +326,7 @@ router.get(['/api/recordings', '/api/admin/recordings'], async (req, res) => {
       // Duration = talk time of the call (from answer), not the length of the audio file, which can include ringing
       let durationSeconds = talkSecondsByCall.get(String(r.callLogId || '')) || r.durationSeconds || 0;
       if (durationSeconds <= 1 && size > 44) durationSeconds = getWavDurationSeconds(p) || durationSeconds;
-      return toRecordingDTO({ ...r, durationSeconds }, { hasAudio: size > 100 || !!r.hasAudioData });
+      return toRecordingDTO({ ...r, durationSeconds }, { hasAudio: size > 100 || !!r.hasAudioData || !!r.cloudinarySecureUrl });
     });
 
     const [agg] = await Recording.aggregate([
@@ -332,6 +371,7 @@ async function uploaderFor(req) {
 }
 
 router.post(['/api/recordings', '/api/user/recordings/upload', '/api/admin/recordings'], async (req, res) => {
+  let pendingCloudinaryAsset = null;
   try {
     const body = req.body || {};
     const { contactName, phoneNumber, transcript, dateStr, timeStr, audioData } = body;
@@ -358,18 +398,34 @@ router.post(['/api/recordings', '/api/user/recordings/upload', '/api/admin/recor
     }
 
     const recId = `rec_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    let storedName = '';
+    let storedName = originalName;
     let storageSizeBytes = 0;
+    let cloudinarySecureUrl = '';
     if (audioData && typeof audioData === 'string' && audioData.length > 50) {
+      let buffer;
       try {
-        const buffer = Buffer.from(audioData.replace(/^data:audio\/[\w.+-]+;base64,/, ''), 'base64');
+        ({ buffer } = decodeBase64(audioData, 'audio/wav'));
+      } catch (decodeError) {
+        return res.status(400).json({ success: false, message: 'The uploaded audio file is invalid.' });
+      }
+      if (buffer.length > 50) {
+        const safeCallerId = String(callerId || 'legacy').replace(/[^\w-]/g, '') || 'legacy';
         const safeOriginal = originalName || `CALL_REC_${Date.now()}.wav`;
-        storedName = `${String(callerId || 'legacy').replace(/[^\w-]/g, '')}_${crypto.randomUUID()}_${safeOriginal}`;
-        fs.writeFileSync(path.join(uploadsDir, storedName), buffer);
-        storageSizeBytes = buffer.length;
-      } catch (fileErr) {
-        console.warn('Could not write audio file to disk:', fileErr.message);
-        storedName = '';
+        storedName = `${safeCallerId}_${crypto.randomUUID()}_${safeOriginal}`;
+        let asset;
+        try {
+          asset = await uploadBuffer(buffer, {
+            folder: 'telesales/recordings',
+            publicId: `${safeCallerId}_${crypto.randomUUID()}`,
+            resourceType: 'video',
+          });
+        } catch (uploadError) {
+          console.error('Cloudinary call audio upload failed:', uploadError.message);
+          return res.status(502).json({ success: false, message: 'Could not upload call audio to Cloudinary.' });
+        }
+        pendingCloudinaryAsset = asset;
+        storageSizeBytes = Number(asset.bytes) || buffer.length;
+        cloudinarySecureUrl = asset.secure_url;
       }
     }
 
@@ -388,18 +444,21 @@ router.post(['/api/recordings', '/api/user/recordings/upload', '/api/admin/recor
       contactName: typeof contactName === 'string' ? contactName.slice(0, 120) : '',
       phoneNumber: String(phoneNumber).trim().slice(0, 40),
       type,
-      fileName: storedName || originalName,
+      fileName: storedName,
       originalFileName: originalName,
       callStartedAt,
       simSlot,
       durationSeconds,
       audioUrl: `/api/recordings/${recId}/audio`,
-      audioData: (audioData && typeof audioData === 'string' && audioData.length < 10000000) ? audioData : '',
+      cloudinaryPublicId: pendingCloudinaryAsset ? pendingCloudinaryAsset.public_id : '',
+      cloudinarySecureUrl,
+      audioData: '',
       transcript: typeof transcript === 'string' ? transcript.slice(0, 5000) : '',
       storageSizeBytes,
       dateStr: typeof dateStr === 'string' ? dateStr.slice(0, 40) : '',
       timeStr: typeof timeStr === 'string' ? timeStr.slice(0, 40) : '',
     });
+    pendingCloudinaryAsset = null;
 
     // Link to exactly ONE CallLog: same caller + same number + start within ±5 min, closest wins
     try {
@@ -437,6 +496,13 @@ router.post(['/api/recordings', '/api/user/recordings/upload', '/api/admin/recor
 
     res.status(201).json({ success: true, recording: toRecordingDTO(rec.toObject()) });
   } catch (err) {
+    if (pendingCloudinaryAsset) {
+      try {
+        await deleteAsset(pendingCloudinaryAsset.public_id, 'video');
+      } catch (cleanupError) {
+        console.error('Could not clean up an unrecorded Cloudinary audio asset:', cleanupError.message);
+      }
+    }
     serverError(res, err, 'recordings.upload');
   }
 });
@@ -606,6 +672,14 @@ router.delete(['/api/recordings/:id', '/api/admin/recordings/:id'], async (req, 
   try {
     const rec = await loadReviewable(req, res);
     if (!rec) return undefined;
+    if (rec.cloudinaryPublicId) {
+      try {
+        await deleteAsset(rec.cloudinaryPublicId, 'video');
+      } catch (deleteError) {
+        console.error('Cloudinary call audio deletion failed:', deleteError.message);
+        return res.status(502).json({ success: false, message: 'Could not remove call audio from Cloudinary.' });
+      }
+    }
     await Recording.deleteOne({ _id: rec._id });
 
     // Remove the audio file (only if no other recording still points at it)

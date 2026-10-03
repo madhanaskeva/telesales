@@ -8,6 +8,7 @@ const { syncCallsForCaller, findLeadsByLast10 } = require('../services/callStats
 const { findEmployeeByRef } = require('../services/scope');
 const { breakInfo } = require('../services/presence');
 const { last10, byIdQuery, phoneRegex, serverError } = require('../utils/common');
+const { uploadBase64, deleteAsset } = require('../services/cloudinary');
 
 const router = express.Router();
 
@@ -101,7 +102,7 @@ router.post(['/api/user/contacts/save', '/api/user/leads/save-contact'], async (
 router.post(['/api/users/photo', '/api/user/photo', '/api/admin/users/photo', '/api/admin/users/:id/photo'], async (req, res) => {
   try {
     const b = req.body || {};
-    const photoBase64 = typeof b.photoBase64 === 'string' ? b.photoBase64 : '';
+    const photoBase64 = typeof b.photoBase64 === 'string' ? b.photoBase64.trim() : null;
     let emp = null;
     if (req.user) {
       const requested = req.params.id || b.userId || b.id;
@@ -123,10 +124,47 @@ router.post(['/api/users/photo', '/api/user/photo', '/api/admin/users/photo', '/
     }
     if (!emp) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const set = { photoBase64 };
-    if (typeof b.avatarUrl === 'string') set.avatarUrl = b.avatarUrl.slice(0, 500);
+    const set = {};
+    if (photoBase64 !== null && photoBase64) {
+      let asset;
+      try {
+        asset = await uploadBase64(photoBase64, {
+          folder: 'telesales/profile-photos',
+          publicId: String(emp.id).replace(/[^\w-]/g, '_'),
+          resourceType: 'image',
+          overwrite: true,
+          defaultMimeType: 'image/jpeg',
+        });
+      } catch (uploadError) {
+        console.error('Cloudinary profile photo upload failed:', uploadError.message);
+        return res.status(502).json({ success: false, message: 'Could not upload the profile photo to Cloudinary.' });
+      }
+      set.photoBase64 = '';
+      set.avatarUrl = asset.secure_url;
+      set.cloudinaryPhotoPublicId = asset.public_id;
+    } else if (photoBase64 === '') {
+      if (emp.cloudinaryPhotoPublicId) {
+        try {
+          await deleteAsset(emp.cloudinaryPhotoPublicId, 'image');
+        } catch (deleteError) {
+          console.error('Cloudinary profile photo deletion failed:', deleteError.message);
+          return res.status(502).json({ success: false, message: 'Could not remove the profile photo from Cloudinary.' });
+        }
+      }
+      set.photoBase64 = '';
+      set.avatarUrl = '';
+      set.cloudinaryPhotoPublicId = '';
+    } else if (typeof b.avatarUrl === 'string') {
+      if (emp.cloudinaryPhotoPublicId) await deleteAsset(emp.cloudinaryPhotoPublicId, 'image');
+      set.photoBase64 = '';
+      set.avatarUrl = b.avatarUrl.slice(0, 500);
+      set.cloudinaryPhotoPublicId = '';
+    }
+    if (!Object.keys(set).length) {
+      return res.status(400).json({ success: false, message: 'A profile photo or avatarUrl is required.' });
+    }
     await Employee.updateOne({ _id: emp._id }, { $set: set });
-    const summary = { id: emp.id, name: emp.name, photoBase64 };
+    const summary = { id: emp.id, name: emp.name, photoBase64: set.photoBase64, avatarUrl: set.avatarUrl || '' };
     res.json({ success: true, message: 'Profile photo updated successfully', user: summary, employee: summary });
   } catch (err) {
     serverError(res, err, 'users.photo');

@@ -68,36 +68,76 @@
 
   <!-- 1. LOGIN OVERLAY -->
   <div id="webLoginOverlay">
-    <div class="login-card">
-      <div class="login-logo">
-        <img src="ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='ask_eva_logo.png';}" alt="AskEva">
-      </div>
-      <div class="login-title">Telesales Monitor</div>
-      <div class="login-subtitle">Admin, manager &amp; team leader portal</div>
-
-      <div id="webLoginError" class="alert-error" role="alert"></div>
-      <form id="webLoginForm" onsubmit="event.preventDefault(); handleWebLogin(event); return false;" novalidate>
-        <div class="form-group">
-          <label class="form-label" for="webLoginEmail">Email or phone</label>
-          <input type="text" id="webLoginEmail" class="form-control" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="webLoginPassword">Password</label>
-          <div class="password-field">
-            <input type="password" id="webLoginPassword" class="form-control" autocomplete="current-password" required />
-            <button type="button" class="password-toggle" onclick="toggleLoginPasswordVisibility()" id="btnToggleLoginPass" title="Show / Hide Password" aria-label="Show or hide password">
-              <svg id="eyeIconLoginPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
+    <div class="login-shell">
+      <div class="hero-panel">
+        <div class="hero-header">
+          <div class="brand-badge" aria-label="AskEva logo">
+            <img src="ask_eva_logo_192.png" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='ask_eva_logo_192.png';}else if(this.dataset.tried==1){this.dataset.tried=2;this.src='ask_eva_logo.png';}" alt="AskEva">
           </div>
+          <div class="brand-wordmark">ASK EVA</div>
+        </div>
+        <div class="hero-watermark">01</div>
+        <h1 class="hero-title">
+          <span>EVERY CALL</span>
+          <span>IS A <em>lead.</em></span>
+        </h1>
+        <p class="hero-copy">Monitor telesales calls, track lead status and coach your callers from one dashboard.</p>
+      </div>
+
+      <div class="ticker-bar" aria-hidden="true">
+        <span>EVERY CALL COUNTS</span>
+        <span>•</span>
+        <span>DIAL</span>
+        <span>•</span>
+        <span>TRACK</span>
+        <span>•</span>
+        <span>CONVERT</span>
+        <span>•</span>
+        <span>EVERY CALL COUNTS</span>
+      </div>
+
+      <div class="login-panel">
+        <div class="role-switch" aria-label="Select role">
+          <button type="button" class="role-option" data-role="manager" aria-pressed="false">
+            <span class="role-icon icon-manager" aria-hidden="true">◫</span>
+            <span>MANAGER</span>
+          </button>
+          <button type="button" class="role-option" data-role="leader" aria-pressed="false">
+            <span class="role-icon icon-leader" aria-hidden="true">◌</span>
+            <span>TEAM LEADER</span>
+          </button>
+          <button type="button" class="role-option is-selected" data-role="caller" aria-pressed="true">
+            <span class="role-icon icon-caller" aria-hidden="true">◉</span>
+            <span>CALLER</span>
+          </button>
         </div>
 
-        <button type="submit" id="webLoginBtn" class="btn btn-primary btn-lg btn-block" style="margin-top: 6px;">Sign in</button>
-        <div class="login-note">Admins, managers &amp; junior managers only.</div>
-      </form>
+        <div id="webLoginError" class="alert-error" role="alert"></div>
+
+        <form id="webLoginForm" onsubmit="event.preventDefault(); handleWebLogin(event); return false;" novalidate>
+          <div class="auth-field-group">
+            <label class="auth-label" for="webLoginEmail">USERNAME OR PHONE</label>
+            <input type="text" id="webLoginEmail" class="auth-input" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required />
+          </div>
+
+          <div class="auth-field-group">
+            <label class="auth-label" for="webLoginPassword">PASSWORD</label>
+            <div class="password-field">
+              <input type="password" id="webLoginPassword" class="auth-input" autocomplete="current-password" required />
+              <button type="button" class="password-toggle" onclick="toggleLoginPasswordVisibility()" id="btnToggleLoginPass" title="Show / Hide Password" aria-label="Show or hide password">
+                <svg id="eyeIconLoginPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="webLoginBtn" class="signin-btn">SIGN IN AS CALLER <span aria-hidden="true">→</span></button>
+        </form>
+
+        <a class="forgot-password" href="#">FORGOT PASSWORD?</a>
+      </div>
     </div>
   </div>
 
@@ -1068,16 +1108,21 @@
       return String(id || '').replace(/[^A-Za-z0-9_-]/g, '_');
     }
 
-    // Only inline base64 images are accepted as profile photos
     function safeImage(s) {
       if (typeof s !== 'string') return '';
       const clean = s.replace(/\s/g, '');
-      return /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(clean) ? clean : '';
+      if (/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(clean)) return clean;
+      try {
+        const url = new URL(clean);
+        return url.protocol === 'https:' ? url.href : '';
+      } catch (_) {
+        return '';
+      }
     }
 
     function setAvatar(el, user) {
       if (!el) return;
-      const img = safeImage(user && user.photoBase64);
+      const img = safeImage(user && user.photoBase64) || safeImage(user && user.avatarUrl);
       if (img) {
         el.style.backgroundImage = `url("${img}")`;
         el.textContent = '';
@@ -1246,7 +1291,7 @@
         return `<div class="empty-state${isError ? ' is-error' : ''}">${msg}</div>`;
       },
       avatar(user, cls = '') {
-        const photo = safeImage(user && user.photoBase64);
+        const photo = safeImage(user && user.photoBase64) || safeImage(user && user.avatarUrl);
         const letter = esc(((user && user.name) || '?').trim().charAt(0).toUpperCase() || '?');
         return `<span class="avatar ${cls}" aria-hidden="true"${photo ? ` style="background-image: url('${photo}');"` : ''}>${photo ? '' : letter}</span>`;
       },
@@ -1344,6 +1389,7 @@
         target: Number.isFinite(t) && u.dailyTarget !== null && u.dailyTarget !== '' ? t : (role === 'CALLER' ? DEFAULT_DAILY_TARGET : 0),
         mgr: u.managerId ? String(u.managerId) : null,
         photoBase64: safeImage(u.photoBase64 || ''),
+        avatarUrl: safeImage(u.avatarUrl || ''),
       };
     }
 
@@ -5440,9 +5486,12 @@
           const body = { photoBase64: b64 };
           if (me.id && me.id !== authId()) body.userId = me.id;
           try {
-            await apiFetch('/users/photo', { method: 'POST', body });
+            const result = await apiFetch('/users/photo', { method: 'POST', body });
             const u = Store.users.find(x => x.id === me.id);
-            if (u) u.photoBase64 = b64;
+            if (u) {
+              u.photoBase64 = '';
+              u.avatarUrl = safeImage((result.user && result.user.avatarUrl) || '');
+            }
             pop('PROFILE PHOTO UPDATED');
           } catch (err) {
             pop(`⚠️ PHOTO NOT SAVED: ${err.message}`);

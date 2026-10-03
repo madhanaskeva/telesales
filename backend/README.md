@@ -37,6 +37,18 @@ d:/Projects/Telesales/backend/
    ```
 2. The backend and admin portal run at `http://localhost:5000` by default. A separately served local frontend can call the API at `http://localhost:5000/api`.
 
+### Cloudinary file storage
+
+Recording audio and profile photos are uploaded to Cloudinary. Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in the backend environment (`.env` or the hosting provider's environment settings); never commit real credentials. The existing recording API keeps serving audio through its authenticated endpoint, and legacy recordings already on disk or in MongoDB remain readable.
+
+To migrate existing local recordings and base64 profile photos, configure the backend environment and run:
+
+```powershell
+npm run migrate:cloudinary
+```
+
+The migration skips assets already in Cloudinary, updates MongoDB after a successful upload, and does not delete the original local audio files.
+
 ---
 
 ## 📊 Admin API Endpoints (`/api/admin`)
