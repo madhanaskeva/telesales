@@ -1,180 +1,9 @@
 /* =====================================================================
-   ASK EVA · TELESALES PORTAL — DESIGN SYSTEM
-   One source of truth for every page of the admin portal.
-   Change a token here and every page follows.
-
-   1. Tokens            5. Buttons & chips      9. Tables
-   2. Base              6. Forms                10. Badges & status
-   3. App shell         7. Cards                11. Charts & progress
-   4. Page header       8. KPI tiles            12. Page-specific pieces
-                                                13. Modals, toast, audio
-                                                14. Responsive
+   ASK EVA · TELESALES PORTAL — COMPONENT STYLES
+   Colours, fonts and spacing come from the :root tokens in styles/global.css.
+   Copied from admin_web/design-system.css (sections 3-14).
    ===================================================================== */
-
-/* ---------- 1. TOKENS ---------- */
-:root {
-  /* Brand */
-  --ds-ink-900: #10180C;
-  --ds-ink-800: #1A2314;
-  --ds-ink-700: #263320;
-  --ds-green-700: #237A21;
-  --ds-green-600: #2E9E2B;
-  --ds-green-500: #3DC838;
-  --ds-green-400: #7FD63B;
-  --ds-lime-400: #C8FF4A;
-  --ds-gradient: linear-gradient(135deg, #3DC838 0%, #7FD63B 55%, #C8FF4A 100%);
-
-  /* Surfaces */
-  --ds-bg: #F4F3EE;
-  --ds-surface: #FFFFFF;
-  --ds-surface-muted: #F9F8F4;
-  --ds-surface-sunken: #F0EEE7;
-  --ds-border: #E4E1D6;
-  --ds-border-strong: #CDC9BB;
-
-  /* Text */
-  --ds-text: #10180C;
-  --ds-text-2: #4A5243;
-  --ds-text-3: #767D6E;
-  --ds-text-on-dark: #EFECE3;
-  --ds-text-on-dark-2: #A9B5A0;
-
-  /* Semantic */
-  --ds-success: #237A21;
-  --ds-success-bg: #E7F6E4;
-  --ds-success-dot: #3DC838;
-  --ds-warning: #9A6412;
-  --ds-warning-bg: #FBF0DC;
-  --ds-warning-dot: #D6972F;
-  --ds-danger: #B83A30;
-  --ds-danger-bg: #FBE8E6;
-  --ds-danger-dot: #D0453A;
-  --ds-lime-bg: #F2FBD6;
-  --ds-lime-text: #4B6400;
-  --ds-neutral-bg: #EFEEE8;
-  --ds-neutral-text: #4A5243;
-
-  /* Type */
-  --ds-font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-  --ds-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --ds-fs-2xs: 10.5px;
-  --ds-fs-xs: 11px;
-  --ds-fs-sm: 12px;
-  --ds-fs-base: 13px;
-  --ds-fs-md: 14px;
-  --ds-fs-lg: 16px;
-  --ds-fs-xl: 20px;
-  --ds-fs-2xl: 24px;
-  --ds-fs-kpi: 30px;
-  --ds-tracking-label: 0.06em;
-
-  /* Spacing (4px grid) */
-  --ds-space-1: 4px;
-  --ds-space-2: 8px;
-  --ds-space-3: 12px;
-  --ds-space-4: 16px;
-  --ds-space-5: 20px;
-  --ds-space-6: 24px;
-  --ds-space-8: 32px;
-
-  /* Shape & depth */
-  --ds-radius-xs: 6px;
-  --ds-radius-sm: 8px;
-  --ds-radius-md: 12px;
-  --ds-radius-lg: 16px;
-  --ds-radius-pill: 999px;
-  --ds-shadow-xs: 0 1px 2px rgba(16, 24, 12, 0.05);
-  --ds-shadow-sm: 0 1px 2px rgba(16, 24, 12, 0.05), 0 2px 8px rgba(16, 24, 12, 0.04);
-  --ds-shadow-md: 0 2px 4px rgba(16, 24, 12, 0.05), 0 8px 24px rgba(16, 24, 12, 0.07);
-  --ds-shadow-lg: 0 12px 40px rgba(16, 24, 12, 0.18);
-  --ds-ring: 0 0 0 3px rgba(61, 200, 56, 0.22);
-  --ds-transition: 0.16s ease;
-
-  /* Layout */
-  --ds-sidebar-w: 244px;
-  --ds-header-h: 56px;
-  --ds-content-max: 1480px;
-
-  /* Legacy aliases — older inline styles keep rendering in the new look */
-  --green-600: var(--ds-green-600);
-  --green-500: var(--ds-green-500);
-  --green-400: var(--ds-green-400);
-  --lime-400: var(--ds-lime-400);
-  --amber-500: var(--ds-warning-dot);
-  --ink-900: var(--ds-ink-900);
-  --ink-800: var(--ds-ink-800);
-  --ink-700: var(--ds-ink-700);
-  --paper: var(--ds-bg);
-  --white: var(--ds-surface);
-  --text-heading: var(--ds-text);
-  --text-body: var(--ds-text-2);
-  --text-muted: var(--ds-text-3);
-  --border-ink: var(--ds-border-strong);
-  --danger: var(--ds-danger);
-  --warning: var(--ds-warning);
-  --gradient-signature: var(--ds-gradient);
-  --font-display: var(--ds-font-sans);
-  --font-accent: var(--ds-font-sans);
-  --font-body: var(--ds-font-sans);
-  --font-mono: var(--ds-font-mono);
-  --radius-card: var(--ds-radius-lg);
-  --radius-bubble: var(--ds-radius-md);
-  --radius-pill: var(--ds-radius-pill);
-  --shadow-card: var(--ds-shadow-sm);
-  --shadow-card-sm: var(--ds-shadow-xs);
-  --shadow-btn: var(--ds-shadow-xs);
-}
-
-/* ---------- 2. BASE ---------- */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  background: var(--ds-bg);
-  color: var(--ds-text);
-  font-family: var(--ds-font-sans);
-  font-size: var(--ds-fs-base);
-  line-height: 1.45;
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: var(--ds-green-600); text-decoration: none; }
-a:hover { color: var(--ds-green-700); }
-::selection { background: var(--ds-lime-400); color: var(--ds-ink-900); }
-:focus-visible { outline: 2px solid var(--ds-green-600); outline-offset: 2px; }
-.sidebar :focus-visible { outline-color: var(--ds-lime-400); }
-button, input, select, textarea { font-family: inherit; color: inherit; }
-button:disabled { cursor: not-allowed; }
-img { max-width: 100%; }
-.visually-hidden {
-  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-}
-.ico { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
-.ico-sm { width: 14px; height: 14px; }
-.ico-lg { width: 20px; height: 20px; }
-.mono { font-family: var(--ds-font-mono); }
-.muted { color: var(--ds-text-3); }
-.text-2 { color: var(--ds-text-2); }
-.nowrap { white-space: nowrap; }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.text-success { color: var(--ds-success); }
-.text-danger { color: var(--ds-danger); }
-.text-warning { color: var(--ds-warning); }
-.fw-600 { font-weight: 600; }
-.fw-700 { font-weight: 700; }
-.tabular { font-variant-numeric: tabular-nums; }
-
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(61, 200, 56, 0.45); }
-  70% { box-shadow: 0 0 0 14px rgba(61, 200, 56, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(61, 200, 56, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
+@import './styles/global.css';
 
 /* ---------- 3. APP SHELL ---------- */
 #appViewport { width: 100vw; height: 100vh; overflow: hidden; }
@@ -1091,3 +920,10 @@ select.form-control, .select { cursor: pointer; padding-right: 8px; }
 @media (max-width: 1024px) { .demo-slot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .demo-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; } .demo-slot-act { opacity: 1; } }
 @media (hover: none) { .demo-slot-act { opacity: 1; } }
+
+/* ---------- 15. REACT PORTAL ADDITIONS ---------- */
+/* "Managed by" reporting chain: top-down, the direct manager in bold */
+.mgr-chain-item { color: var(--ds-chain-muted); font-weight: 400; }
+.mgr-chain-item.is-direct { color: var(--ds-text); font-weight: 700; }
+.mgr-chain-sep { color: var(--ds-chain-sep); }
+.mgr-chain-top { color: var(--ds-chain-muted); }
